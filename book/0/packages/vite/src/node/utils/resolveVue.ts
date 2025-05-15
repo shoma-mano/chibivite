@@ -88,8 +88,10 @@ export function resolveVue(root: string): ResolvedVuePaths {
 
   // resolve nested dependencies with correct base dirs so that this works with
   // strict package managers - e.g. pnpm / yarn 2
-  const runtimeDomPath = resolvePath('runtime-dom', vueBasePath!)
-  const runtimeCorePath = resolvePath('runtime-core', runtimeDomPath)
+  const runtimeDomPath = join(dirname(import.meta.resolve('@vue/runtime-dom')), './dist/compiler-dom.esm-bundler.js')
+  const runtimeCorePath = join(dirname(import.meta.resolve('@vue/runtime-core')), './dist/runtime-core.esm-bundler.js')
+  console.log('runtimeDomPath', runtimeDomPath)
+  console.log('runtimeCorePath', runtimeCorePath)
   const reactivityPath = resolvePath('reactivity', runtimeCorePath)
   const sharedPath = resolvePath('shared', runtimeCorePath)
 
