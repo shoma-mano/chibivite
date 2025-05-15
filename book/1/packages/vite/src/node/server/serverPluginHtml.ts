@@ -12,7 +12,9 @@ import path from 'path'
 import slash from 'slash'
 import chalk from 'chalk'
 
-const debug = require('debug')('vite:rewrite')
+import debu from 'debug'
+
+const debug = debu('vite:rewrite')
 
 const rewriteHtmlPluginCache = new LRUCache({ max: 20 })
 

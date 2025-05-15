@@ -6,8 +6,8 @@ import { Readable } from 'stream'
 import { seenUrls } from '../server/serverPluginServeStatic'
 import mime from 'mime-types'
 import { HMRWatcher } from '../server/serverPluginHmr'
+import getETag from 'etag'
 
-const getETag = require('etag')
 
 interface CacheEntry {
   lastModified: number

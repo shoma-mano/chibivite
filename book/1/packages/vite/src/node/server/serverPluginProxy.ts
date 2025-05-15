@@ -6,7 +6,9 @@ export const proxyPlugin: ServerPlugin = ({ app, config }) => {
     return
   }
 
-  const debug = require('debug')('vite:proxy')
+  import debu from 'debug'
+
+const debug = debu('vite:proxy')
   const proxy = require('koa-proxies')
   const options = config.proxy
   Object.keys(options).forEach((path) => {

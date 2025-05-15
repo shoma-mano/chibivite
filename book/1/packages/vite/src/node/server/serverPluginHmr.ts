@@ -39,8 +39,9 @@ import {
   IfStatement
 } from '@babel/types'
 import { resolveCompiler } from '../utils'
+import debu from 'debug'
 
-export const debugHmr = require('debug')('vite:hmr')
+export const debugHmr = debu('vite:hmr')
 
 export type HMRWatcher = FSWatcher & {
   handleVueReload: (
@@ -67,7 +68,7 @@ export const hmrDirtyFilesMap = new LRUCache<string, Set<string>>({ max: 10 })
 export const latestVersionsMap = new Map<string, string>()
 
 // client and node files are placed flat in the dist folder
-export const hmrClientFilePath = path.resolve(__dirname, '../client.js')
+export const hmrClientFilePath = path.resolve(import.meta.dirname, '../client.js')
 export const hmrClientPublicPath = `/vite/hmr`
 
 interface HMRPayload {

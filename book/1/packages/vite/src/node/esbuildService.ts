@@ -4,13 +4,15 @@ import { transform as _transform, TransformOptions, Message } from 'esbuild'
 import { SharedConfig } from './config'
 import { cleanUrl } from './utils'
 
-const debug = require('debug')('vite:esbuild')
+import debu from 'debug'
+
+const debug = debu('vite:esbuild')
 
 export const tjsxRE = /\.(tsx?|jsx)$/
 
 export const vueJsxPublicPath = '/vite/jsx'
 
-export const vueJsxFilePath = path.resolve(__dirname, 'vueJsxCompat.js')
+export const vueJsxFilePath = path.resolve(import.meta.dirname, 'vueJsxCompat.js')
 
 const JsxPresets: Record<
   string,

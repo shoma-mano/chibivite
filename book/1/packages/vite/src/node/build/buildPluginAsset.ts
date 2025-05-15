@@ -5,8 +5,9 @@ import { cleanUrl, isStaticAsset } from '../utils'
 import hash_sum from 'hash-sum'
 import slash from 'slash'
 import mime from 'mime-types'
+import debu from 'debug'
 
-const debug = require('debug')('vite:build:asset')
+const debug = debu('vite:build:asset')
 
 interface AssetCacheEntry {
   content?: Buffer

@@ -12,8 +12,8 @@ import Rollup, {
 } from 'rollup'
 import { createEsbuildPlugin } from './build/buildPluginEsbuild'
 import { ServerPlugin } from './server'
-import { Resolver, supportedExts } from './resolver'
-import { Transform, CustomBlockTransform } from './transform'
+import { type Resolver, supportedExts } from './resolver'
+import { type Transform, CustomBlockTransform } from './transform'
 import { DepOptimizationOptions } from './optimizer'
 import { IKoaProxiesOptions } from 'koa-proxies'
 import { ServerOptions } from 'https'
@@ -288,7 +288,9 @@ export type ResolvedConfig = UserConfig & {
   __path?: string
 }
 
-const debug = require('debug')('vite:config')
+import debu from 'debug'
+
+const debug = debu('vite:config')
 
 export async function resolveConfig(
   mode: string,

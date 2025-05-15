@@ -76,7 +76,7 @@ function startBrowserProcess(browser: string | undefined, url: string) {
       // on OS X Google Chrome with AppleScript
       execSync('ps cax | grep "Google Chrome"')
       execSync('osascript openChrome.applescript "' + encodeURI(url) + '"', {
-        cwd: path.resolve(__dirname, '../../bin'),
+        cwd: path.resolve(import.meta.dirname, '../../bin'),
         stdio: 'ignore'
       })
       return true

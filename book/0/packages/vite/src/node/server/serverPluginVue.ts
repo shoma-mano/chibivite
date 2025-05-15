@@ -30,9 +30,11 @@ import { parse } from '../utils/babelParse'
 import MagicString from 'magic-string'
 import { resolveImport } from './serverPluginModuleRewrite'
 import { SourceMap, mergeSourceMap } from './serverPluginSourceMap'
+import getEtag from 'etag'
 
-const debug = require('debug')('vite:sfc')
-const getEtag = require('etag')
+import debu from 'debug'
+
+const debug = debu('vite:sfc')
 
 export const srcImportMap = new Map()
 

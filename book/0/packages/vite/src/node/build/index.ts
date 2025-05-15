@@ -22,7 +22,7 @@ import { createBuildCssPlugin } from './buildPluginCss'
 import { createBuildAssetPlugin } from './buildPluginAsset'
 import { createEsbuildPlugin } from './buildPluginEsbuild'
 import { createReplacePlugin } from './buildPluginReplace'
-import { stopService } from '../esbuildService'
+// import { stopService } from '../esbuildService'
 import { BuildConfig } from '../config'
 import { createBuildJsTransformPlugin } from '../transform'
 import hash_sum from 'hash-sum'
@@ -401,7 +401,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
   }
 
   // stop the esbuild service after each build
-  stopService()
+  // stopService()
 
   return {
     assets: output,

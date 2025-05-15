@@ -3,9 +3,10 @@ import path from 'path'
 import { ServerPlugin } from '.'
 import { isStaticAsset } from '../utils'
 import chalk from 'chalk'
+import send from 'koa-send'
+import debu from 'debug'
 
-const send = require('koa-send')
-const debug = require('debug')('vite:history')
+const debug = debu('vite:history')
 
 export const seenUrls = new Set()
 

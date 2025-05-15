@@ -16,7 +16,9 @@ import {
 } from '@vue/compiler-sfc'
 import chalk from 'chalk'
 
-const debug = require('debug')('vite:build:css')
+import debu from 'debug'
+
+const debug = debu('vite:build:css')
 
 const cssInjectionMarker = `__VITE_CSS__`
 const cssInjectionRE = /__VITE_CSS__\(\)/g

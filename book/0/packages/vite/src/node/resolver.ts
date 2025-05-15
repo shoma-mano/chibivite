@@ -17,7 +17,9 @@ import { resolveOptimizedCacheDir } from './optimizer'
 import { hmrClientPublicPath } from './server/serverPluginHmr'
 import chalk from 'chalk'
 
-const debug = require('debug')('vite:resolve')
+import debu from 'debug'
+
+const debug = debu('vite:resolve')
 const isWin = require('os').platform() === 'win32'
 const pathSeparator = isWin ? '\\' : '/'
 

@@ -1,10 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../../dist",
+    "lib": ["ESNext", "WebWorker"],
     "module": "esnext",
     "types": [],
-    "lib": ["ESNext", "WebWorker"]
+    "outDir": "../../dist"
   },
   "include": ["./"]
 }

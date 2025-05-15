@@ -288,7 +288,9 @@ export type ResolvedConfig = UserConfig & {
   __path?: string
 }
 
-const debug = require('debug')('vite:config')
+import debu from 'debug'
+
+const debug = debu('vite:config')
 
 export async function resolveConfig(
   mode: string,

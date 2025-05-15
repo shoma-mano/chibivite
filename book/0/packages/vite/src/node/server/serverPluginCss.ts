@@ -15,13 +15,14 @@ import qs from 'querystring'
 import chalk from 'chalk'
 import { InternalResolver } from '../resolver'
 import { hmrClientPublicPath } from './serverPluginHmr'
+import debu from 'debug'
 
 interface ProcessedEntry {
   css: string
   modules?: Record<string, string>
 }
 
-export const debugCSS = require('debug')('vite:css')
+export const debugCSS = debu('vite:css')
 
 const processedCSS = new Map<string, ProcessedEntry>()
 

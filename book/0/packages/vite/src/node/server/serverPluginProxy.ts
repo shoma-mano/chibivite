@@ -1,12 +1,14 @@
 import { ServerPlugin } from '.'
 import { URL } from 'url'
+import debu from 'debug'
 
 export const proxyPlugin: ServerPlugin = ({ app, config }) => {
   if (!config.proxy) {
     return
   }
 
-  const debug = require('debug')('vite:proxy')
+
+const debug = debu('vite:proxy')
   const proxy = require('koa-proxies')
   const options = config.proxy
   Object.keys(options).forEach((path) => {

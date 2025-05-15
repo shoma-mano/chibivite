@@ -27,7 +27,9 @@ import chalk from 'chalk'
 import { isCSSRequest } from '../utils/cssUtils'
 import { envPublicPath } from './serverPluginEnv'
 
-const debug = require('debug')('vite:rewrite')
+import debu from 'debug'
+
+const debug = debu('vite:rewrite')
 
 const rewriteCache = new LRUCache({ max: 1024 })
 

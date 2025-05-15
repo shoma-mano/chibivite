@@ -7,6 +7,11 @@ export default defineBuildConfig({
       builder: 'mkdist',
       declaration: true,
     },
+    {
+      input: './src/node',
+      builder: 'mkdist',
+      declaration: true,
+    },
   ],
   clean: false,
 })

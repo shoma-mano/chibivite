@@ -6,7 +6,9 @@ import { resolveVue } from '../utils'
 import { URL } from 'url'
 import { resolveOptimizedModule, resolveNodeModuleFile } from '../resolver'
 
-const debug = require('debug')('vite:resolve')
+import debu from 'debug'
+
+const debug = debu('vite:resolve')
 
 export const moduleIdToFileMap = new Map()
 export const moduleFileToIdMap = new Map()

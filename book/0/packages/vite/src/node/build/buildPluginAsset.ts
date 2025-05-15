@@ -6,7 +6,8 @@ import hash_sum from 'hash-sum'
 import slash from 'slash'
 import mime from 'mime-types'
 
-const debug = require('debug')('vite:build:asset')
+import debu from 'debug'
+const debug = debu('vite:build:asset')
 
 interface AssetCacheEntry {
   content?: Buffer

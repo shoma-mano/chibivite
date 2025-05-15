@@ -18,7 +18,9 @@ import { Ora } from 'ora'
 import { createDepAssetPlugin, depAssetExternalPlugin } from './pluginAssets'
 import { createBuiltInBailPlugin } from './pluginBuiltInBail'
 
-const debug = require('debug')('vite:optimize')
+import debu from 'debug'
+
+const debug = debu('vite:optimize')
 
 const KNOWN_IGNORE_LIST = new Set([
   'vite',
