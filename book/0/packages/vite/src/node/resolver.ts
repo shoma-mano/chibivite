@@ -1,6 +1,9 @@
 import fs from 'fs-extra'
 import path from 'path'
 import slash from 'slash'
+import os from 'node:os'
+// @ts-ignore
+import debug from 'debug'
 import {
   cleanUrl,
   resolveFrom,
@@ -17,10 +20,8 @@ import { resolveOptimizedCacheDir } from './optimizer'
 import { hmrClientPublicPath } from './server/serverPluginHmr'
 import chalk from 'chalk'
 
-import debu from 'debug'
-
-const debug = debu('vite:resolve')
-const isWin = require('os').platform() === 'win32'
+const debugLog = debug('vite:resolve')
+const isWin = os.platform() === 'win32'
 const pathSeparator = isWin ? '\\' : '/'
 
 export interface Resolver {
@@ -111,7 +112,7 @@ const resolveFilePathPostfix = (filePath: string): string | undefined => {
     const query = queryMatch ? queryMatch[0] : ''
     const resolved = cleanPath + postfix + query
     if (resolved !== filePath) {
-      debug(`(postfix) ${filePath} -> ${resolved}`)
+      debugLog(`(postfix) ${filePath} -> ${resolved}`)
       return postfix
     }
   }
@@ -468,7 +469,7 @@ export function resolveNodeModule(
     // see if the id is a valid package name
     pkgPath = resolveFrom(root, `${id}/package.json`)
   } catch (e) {
-    debug(`failed to resolve package.json for ${id}`)
+    debugLog(`failed to resolve package.json for ${id}`)
   }
 
   if (pkgPath) {

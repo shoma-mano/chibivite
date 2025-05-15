@@ -1,6 +1,11 @@
 import path from 'path'
 import postcssrc from 'postcss-load-config'
 import chalk from 'chalk'
+// @ts-ignore
+import postcssImport from 'postcss-import'
+// @ts-ignore
+import postcssDiscardComments from 'postcss-discard-comments'
+
 import { asyncReplace } from './transformUtils'
 import { isExternalUrl, resolveFrom } from './pathUtils'
 import { resolveCompiler } from './resolveVue'
@@ -133,9 +138,8 @@ async function loadPostcssConfig(
     return cachedPostcssConfig
   }
   try {
-    const load = require('postcss-load-config') as typeof postcssrc
-    return (cachedPostcssConfig = await load({}, root))
-  } catch (e) {
+    return (cachedPostcssConfig = await postcssrc({}, root))
+  } catch (e: any) {
     if (!/No PostCSS Config found/.test(e.message)) {
       console.error(chalk.red(`[vite] Error loading postcss config:`))
       console.error(e)
@@ -148,9 +152,9 @@ export async function resolvePostcssOptions(root: string, isBuild: boolean) {
   const config = await loadPostcssConfig(root)
   const options = config && config.options
   const plugins = config ? config.plugins : []
-  plugins.unshift(require('postcss-import')())
+  plugins.unshift(postcssImport())
   if (isBuild) {
-    plugins.push(require('postcss-discard-comments')({ removeAll: true }))
+    plugins.push(postcssDiscardComments({ removeAll: true }))
   }
   return {
     options,

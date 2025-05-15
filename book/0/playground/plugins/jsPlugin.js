@@ -1,7 +1,6 @@
-import { Plugin } from 'vite'
 import MagicString from 'magic-string'
 
-export const jsPlugin: Plugin = {
+export const jsPlugin = {
   transforms: [
     {
       test({ path }) {
@@ -20,10 +19,10 @@ export const jsPlugin: Plugin = {
           code: s.toString(),
           map: s.generateMap({
             source: id,
-            includeContent: true
-          })
+            includeContent: true,
+          }),
         }
-      }
-    }
-  ]
+      },
+    },
+  ],
 }

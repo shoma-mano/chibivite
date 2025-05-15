@@ -1,12 +1,13 @@
-import path from 'path'
+import type { Message, TransformOptions } from 'esbuild'
+import type { SharedConfig } from './config'
+import path from 'node:path'
 import chalk from 'chalk'
-import { transform as _transform, TransformOptions, Message } from 'esbuild'
-import { SharedConfig } from './config'
+// @ts-ignore
+import debug from 'debug'
+import { transform as _transform } from 'esbuild'
 import { cleanUrl } from './utils'
 
-import debu from 'debug'
-
-const debug = debu('vite:esbuild')
+const debugLog = debug('vite:esbuild')
 
 export const tjsxRE = /\.(tsx?|jsx)$/
 
@@ -20,7 +21,7 @@ const JsxPresets: Record<
 > = {
   vue: { jsxFactory: 'jsx', jsxFragment: 'Fragment' },
   preact: { jsxFactory: 'h', jsxFragment: 'Fragment' },
-  react: {} // use esbuild default
+  react: {}, // use esbuild default
 }
 
 export function resolveJsxOptions(options: SharedConfig['jsx'] = 'vue') {
@@ -29,10 +30,11 @@ export function resolveJsxOptions(options: SharedConfig['jsx'] = 'vue') {
       console.error(`[vite] unknown jsx preset: '${options}'.`)
     }
     return JsxPresets[options] || {}
-  } else if (options) {
+  }
+  else if (options) {
     return {
       jsxFactory: options.factory,
-      jsxFragment: options.fragment
+      jsxFragment: options.fragment,
     }
   }
 }
@@ -40,25 +42,20 @@ export function resolveJsxOptions(options: SharedConfig['jsx'] = 'vue') {
 const sourceMapRE = /\/\/# sourceMappingURL.*/
 
 // transform used in server plugins with a more friendly API
-export const transform = async (
-  src: string,
-  request: string,
-  options: TransformOptions = {},
-  jsxOption?: SharedConfig['jsx']
-) => {
+export async function transform(src: string, request: string, options: TransformOptions = {}, jsxOption?: SharedConfig['jsx']) {
   const file = cleanUrl(request)
   options = {
     ...options,
     loader: options.loader || (path.extname(file).slice(1) as any),
     sourcemap: true,
     sourcefile: request, // ensure source file name contains full query
-    target: 'es2019'
+    target: 'es2019',
   }
   try {
     const result = await _transform(src, options)
     if (result.warnings.length) {
       console.error(`[vite] warnings while transforming ${file} with esbuild:`)
-      result.warnings.forEach((m) => printMessage(m, src))
+      result.warnings.forEach(m => printMessage(m, src))
     }
 
     let code = (result.code || '').replace(sourceMapRE, '')
@@ -67,9 +64,9 @@ export const transform = async (
     // Fragment.
     if (file.endsWith('x')) {
       if (!jsxOption || jsxOption === 'vue') {
-        code +=
-          `\nimport { jsx } from '${vueJsxPublicPath}'` +
-          `\nimport { Fragment } from 'vue'`
+        code
+          += `\nimport { jsx } from '${vueJsxPublicPath}'`
+            + `\nimport { Fragment } from 'vue'`
       }
       if (jsxOption === 'preact') {
         code += `\nimport { h, Fragment } from 'preact'`
@@ -78,21 +75,23 @@ export const transform = async (
 
     return {
       code,
-      map: result.map
+      map: result.map,
     }
-  } catch (e) {
+  }
+  catch (e: any) {
     console.error(
-      chalk.red(`[vite] error while transforming ${file} with esbuild:`)
+      chalk.red(`[vite] error while transforming ${file} with esbuild:`),
     )
     if (e.errors) {
       e.errors.forEach((m: Message) => printMessage(m, src))
-    } else {
+    }
+    else {
       console.error(e)
     }
-    debug(`options used: `, options)
+    debugLog(`options used: `, options)
     return {
       code: '',
-      map: undefined
+      map: undefined,
     }
   }
 }
@@ -103,13 +102,15 @@ function printMessage(m: Message, code: string) {
     const lines = code.split(/\r?\n/g)
     const line = Number(m.location.line)
     const column = Number(m.location.column)
-    const offset =
-      lines
+    const offset
+      = lines
         .slice(0, line - 1)
-        .map((l) => l.length)
+        .map(l => l.length)
         .reduce((total, l) => total + l + 1, 0) + column
     console.error(
-      require('@vue/compiler-core').generateCodeFrame(code, offset, offset + 1)
+      code,
+      offset,
+      offset + 1,
     )
   }
 }

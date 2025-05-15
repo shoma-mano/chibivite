@@ -1,22 +1,29 @@
-import path from 'path'
-import fs from 'fs-extra'
-import chalk from 'chalk'
-import dotenv, { DotenvParseOutput } from 'dotenv'
-import dotenvExpand from 'dotenv-expand'
-import { Options as RollupPluginVueOptions } from 'rollup-plugin-vue'
-import { CompilerOptions, SFCStyleCompileOptions } from '@vue/compiler-sfc'
-import Rollup, {
+import type { CompilerOptions, SFCStyleCompileOptions } from '@vue/compiler-sfc'
+import type { DotenvParseOutput } from 'dotenv'
+import type { IKoaProxiesOptions } from 'koa-proxies'
+import type { ServerOptions } from 'node:https'
+import type {
+  OutputChunk,
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
-  OutputChunk
 } from 'rollup'
+import type { Options as RollupPluginVueOptions } from 'rollup-plugin-vue'
+import type { DepOptimizationOptions } from './optimizer'
+import type { Resolver } from './resolver'
+import type { ServerPlugin } from './server'
+import type { CustomBlockTransform, Transform } from './transform'
+import path from 'node:path'
+// @ts-ignore
+import * as rollupNodeResolve from '@rollup/plugin-node-resolve'
+import chalk from 'chalk'
+// @ts-ignore
+import debug from 'debug'
+import dotenv from 'dotenv'
+import dotenvExpand from 'dotenv-expand'
+import fs from 'fs-extra'
+import * as Rollup from 'rollup'
 import { createEsbuildPlugin } from './build/buildPluginEsbuild'
-import { ServerPlugin } from './server'
-import { type Resolver, supportedExts } from './resolver'
-import { type Transform, CustomBlockTransform } from './transform'
-import { DepOptimizationOptions } from './optimizer'
-import { IKoaProxiesOptions } from 'koa-proxies'
-import { ServerOptions } from 'https'
+import { supportedExts } from './resolver'
 import { lookupFile } from './utils'
 
 export { Resolver, Transform }
@@ -102,9 +109,9 @@ export interface SharedConfig {
     | 'preact'
     | 'react'
     | {
-        factory?: string
-        fragment?: string
-      }
+      factory?: string
+      fragment?: string
+    }
   /**
    * Environment variables
    */
@@ -288,13 +295,11 @@ export type ResolvedConfig = UserConfig & {
   __path?: string
 }
 
-import debu from 'debug'
-
-const debug = debu('vite:config')
+const debugLog = debug('vite:config')
 
 export async function resolveConfig(
   mode: string,
-  configPath?: string
+  configPath?: string,
 ): Promise<ResolvedConfig | undefined> {
   const start = Date.now()
   const cwd = process.cwd()
@@ -303,11 +308,13 @@ export async function resolveConfig(
   let isTS = false
   if (configPath) {
     resolvedPath = path.resolve(cwd, configPath)
-  } else {
+  }
+  else {
     const jsConfigPath = path.resolve(cwd, 'vite.config.js')
     if (fs.existsSync(jsConfigPath)) {
       resolvedPath = jsConfigPath
-    } else {
+    }
+    else {
       const tsConfigPath = path.resolve(cwd, 'vite.config.ts')
       if (fs.existsSync(tsConfigPath)) {
         isTS = true
@@ -319,18 +326,19 @@ export async function resolveConfig(
   if (!resolvedPath) {
     // load environment variables
     return {
-      env: loadEnv(mode, cwd)
+      env: loadEnv(mode, cwd),
     }
   }
 
   try {
     if (!isTS) {
       try {
-        config = require(resolvedPath)
-      } catch (e) {
+        config = await import(resolvedPath).then(mod => mod.default)
+      }
+      catch (e: any) {
         if (
           !/Cannot use import statement|Unexpected token 'export'/.test(
-            e.message
+            e.message,
           )
         ) {
           throw e
@@ -341,26 +349,26 @@ export async function resolveConfig(
     if (!config) {
       // 2. if we reach here, the file is ts or using es import syntax.
       // transpile es import syntax to require syntax using rollup.
-      const rollup = require('rollup') as typeof Rollup
+      const rollup = Rollup
       const esbuildPlugin = await createEsbuildPlugin(false, {})
       // use node-resolve to support .ts files
-      const nodeResolve = require('@rollup/plugin-node-resolve').nodeResolve({
-        extensions: supportedExts
+      const nodeResolve = rollupNodeResolve.nodeResolve({
+        extensions: supportedExts,
       })
       const bundle = await rollup.rollup({
         external: (id: string) =>
-          (id[0] !== '.' && !path.isAbsolute(id)) ||
-          id.slice(-5, id.length) === '.json',
+          (id[0] !== '.' && !path.isAbsolute(id))
+          || id.slice(-5, id.length) === '.json',
         input: resolvedPath,
         treeshake: false,
-        plugins: [esbuildPlugin, nodeResolve]
+        plugins: [esbuildPlugin, nodeResolve],
       })
 
       const {
-        output: [{ code }]
+        output: [{ code }],
       } = await bundle.generate({
         exports: 'named',
-        format: 'cjs'
+        format: 'cjs',
       })
 
       config = await loadConfigFromBundledFile(resolvedPath, code)
@@ -380,15 +388,16 @@ export async function resolveConfig(
 
     config.env = {
       ...config.env,
-      ...loadEnv(mode, config.root || cwd)
+      ...loadEnv(mode, config.root || cwd),
     }
-    debug(`config resolved in ${Date.now() - start}ms`)
+    debugLog(`config resolved in ${Date.now() - start}ms`)
 
     config.__path = resolvedPath
     return config
-  } catch (e) {
+  }
+  catch (e) {
     console.error(
-      chalk.red(`[vite] failed to load config from ${resolvedPath}:`)
+      chalk.red(`[vite] failed to load config from ${resolvedPath}:`),
     )
     console.error(e)
     process.exit(1)
@@ -396,26 +405,16 @@ export async function resolveConfig(
 }
 
 interface NodeModuleWithCompile extends NodeModule {
-  _compile(code: string, filename: string): any
+  _compile: (code: string, filename: string) => any
 }
 
 async function loadConfigFromBundledFile(
   fileName: string,
-  bundledCode: string
+  bundledCode: string,
 ): Promise<UserConfig> {
   const extension = path.extname(fileName)
-  const defaultLoader = require.extensions[extension]!
-  require.extensions[extension] = (module: NodeModule, filename: string) => {
-    if (filename === fileName) {
-      ;(module as NodeModuleWithCompile)._compile(bundledCode, filename)
-    } else {
-      defaultLoader(module, filename)
-    }
-  }
-  delete require.cache[fileName]
-  const raw = require(fileName)
-  const config = raw.__esModule ? raw.default : raw
-  require.extensions[extension] = defaultLoader
+
+  const config = await import(fileName).then(mod => mod.default)
   return config
 }
 
@@ -424,47 +423,47 @@ function resolvePlugin(config: UserConfig, plugin: Plugin): UserConfig {
     ...config,
     alias: {
       ...plugin.alias,
-      ...config.alias
+      ...config.alias,
     },
     transforms: [...(config.transforms || []), ...(plugin.transforms || [])],
     resolvers: [...(config.resolvers || []), ...(plugin.resolvers || [])],
     configureServer: ([] as any[]).concat(
       config.configureServer || [],
-      plugin.configureServer || []
+      plugin.configureServer || [],
     ),
     vueCompilerOptions: {
       ...config.vueCompilerOptions,
-      ...plugin.vueCompilerOptions
+      ...plugin.vueCompilerOptions,
     },
     vueCustomBlockTransforms: {
       ...config.vueCustomBlockTransforms,
-      ...plugin.vueCustomBlockTransforms
+      ...plugin.vueCustomBlockTransforms,
     },
     rollupInputOptions: {
       ...config.rollupInputOptions,
-      ...plugin.rollupInputOptions
+      ...plugin.rollupInputOptions,
     },
     rollupOutputOptions: {
       ...config.rollupOutputOptions,
-      ...plugin.rollupOutputOptions
-    }
+      ...plugin.rollupOutputOptions,
+    },
   }
 }
 
 function loadEnv(mode: string, root: string): Record<string, string> {
   if (mode === 'local') {
     throw new Error(
-      `"local" cannot be used as a mode name because it conflicts with ` +
-        `the .local postfix for .env files.`
+      `"local" cannot be used as a mode name because it conflicts with `
+      + `the .local postfix for .env files.`,
     )
   }
 
-  debug(`env mode: ${mode}`)
+  debugLog(`env mode: ${mode}`)
   const envFiles = [
     /** mode local file */ `.env.${mode}.local`,
     /** mode file */ `.env.${mode}`,
     /** local file */ `.env.local`,
-    /** default file */ `.env`
+    /** default file */ `.env`,
   ]
 
   const env: Record<string, string> = {}
@@ -473,7 +472,7 @@ function loadEnv(mode: string, root: string): Record<string, string> {
     if (path) {
       const result = dotenv.config({
         debug: !!process.env.DEBUG || undefined,
-        path
+        path,
       })
       if (result.error) {
         throw result.error
@@ -488,6 +487,6 @@ function loadEnv(mode: string, root: string): Record<string, string> {
     }
   }
 
-  debug(`env: %O`, env)
+  debugLog(`env: %O`, env)
   return env
 }

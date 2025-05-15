@@ -3,6 +3,7 @@ import path from 'path'
 import { createHash } from 'crypto'
 import { ResolvedConfig } from '../config'
 import type Rollup from 'rollup'
+import * as rollup from 'rollup'
 import {
   createResolver,
   supportedExts,
@@ -15,12 +16,13 @@ import { lookupFile, resolveFrom } from '../utils'
 import { init, parse } from 'es-module-lexer'
 import chalk from 'chalk'
 import { Ora } from 'ora'
+import ora from 'ora'
+// @ts-ignore
+import debug from 'debug'
 import { createDepAssetPlugin, depAssetExternalPlugin } from './pluginAssets'
 import { createBuiltInBailPlugin } from './pluginBuiltInBail'
 
-import debu from 'debug'
-
-const debug = debu('vite:optimize')
+const debugLog = debug('vite:optimize')
 
 const KNOWN_IGNORE_LIST = new Set([
   'vite',
@@ -63,7 +65,7 @@ export async function optimizeDeps(
   config: ResolvedConfig & { force?: boolean },
   asCommand = false
 ) {
-  const log = asCommand ? console.log : debug
+  const log = asCommand ? console.log : debugLog
   const root = config.root || process.cwd()
   // warn presence of web_modules
   if (fs.existsSync(path.join(root, 'web_modules'))) {
@@ -92,7 +94,7 @@ export async function optimizeDeps(
     } catch (e) {}
     // hash is consistent, no need to re-bundle
     if (prevhash === depHash) {
-      log('Hash is consistent. Skipping. Use --force to override.')
+      debugLog('Hash is consistent. Skipping. Use --force to override.')
       return
     }
   }
@@ -152,7 +154,7 @@ export async function optimizeDeps(
 
   if (!Object.keys(qualified).length) {
     await fs.writeFile(hashPath, depHash)
-    log(`No listed dependency requires optimization. Skipping.`)
+    debugLog(`No listed dependency requires optimization. Skipping.`)
     return
   }
 
@@ -175,12 +177,10 @@ export async function optimizeDeps(
   if (process.env.DEBUG || process.env.NODE_ENV === 'test') {
     console.log(msg)
   } else {
-    spinner = require('ora')(msg + '\n').start()
+    spinner = ora(msg + '\n').start()
   }
 
   try {
-    const rollup = require('rollup') as typeof Rollup
-
     const bundle = await rollup.rollup({
       input: qualified,
       external,
@@ -217,7 +217,7 @@ export async function optimizeDeps(
     }
 
     await fs.writeFile(hashPath, depHash)
-  } catch (e) {
+  } catch (e: any) {
     spinner && spinner.stop()
     if (asCommand) {
       throw e
@@ -280,20 +280,20 @@ function resolveQualifiedDeps(
       return false
     }
     if (exclude && exclude.includes(id)) {
-      debug(`skipping ${id} (excluded)`)
+      debugLog(`skipping ${id} (excluded)`)
       return false
     }
     if (link && link.includes(id)) {
-      debug(`skipping ${id} (link)`)
+      debugLog(`skipping ${id} (link)`)
       return false
     }
     if (KNOWN_IGNORE_LIST.has(id)) {
-      debug(`skipping ${id} (internal excluded)`)
+      debugLog(`skipping ${id} (internal excluded)`)
       return false
     }
     const pkgInfo = resolveNodeModule(root, id, resolver)
     if (!pkgInfo || !pkgInfo.entryFilePath) {
-      debug(`skipping ${id} (cannot resolve entry)`)
+      debugLog(`skipping ${id} (cannot resolve entry)`)
       console.log(root, id)
       console.error(
         chalk.yellow(
@@ -304,11 +304,11 @@ function resolveQualifiedDeps(
     }
     const { entryFilePath } = pkgInfo
     if (!supportedExts.includes(path.extname(entryFilePath))) {
-      debug(`skipping ${id} (entry is not js)`)
+      debugLog(`skipping ${id} (entry is not js)`)
       return false
     }
     if (!fs.existsSync(entryFilePath)) {
-      debug(`skipping ${id} (entry file does not exist)`)
+      debugLog(`skipping ${id} (entry file does not exist)`)
       console.error(
         chalk.yellow(
           `[vite] dependency ${id} declares non-existent entry file ${entryFilePath}.`
@@ -319,22 +319,22 @@ function resolveQualifiedDeps(
     const content = fs.readFileSync(entryFilePath, 'utf-8')
     const [imports, exports] = parse(content)
     if (!exports.length && !/export\s+\*\s+from/.test(content)) {
-      debug(`optimizing ${id} (no exports, likely commonjs)`)
+      debugLog(`optimizing ${id} (no exports, likely commonjs)`)
       return true
     }
     for (const { s, e } of imports) {
       let i = content.slice(s, e).trim()
       i = resolver.alias(i) || i
       if (i.startsWith('.')) {
-        debug(`optimizing ${id} (contains relative imports)`)
+        debugLog(`optimizing ${id} (contains relative imports)`)
         return true
       }
       if (!deps.includes(i)) {
-        debug(`optimizing ${id} (imports sub dependencies)`)
+        debugLog(`optimizing ${id} (imports sub dependencies)`)
         return true
       }
     }
-    debug(`skipping ${id} (single esm file, doesn't need optimization)`)
+    debugLog(`skipping ${id} (single esm file, doesn't need optimization)`)
   })
 
   const qualified: Record<string, string> = {}

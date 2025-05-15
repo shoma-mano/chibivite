@@ -9,7 +9,9 @@ import {
   NodeTransform,
   NodeTypes,
   TextNode,
-  AttributeNode
+  AttributeNode,
+  parse,
+  transform
 } from '@vue/compiler-dom'
 import MagicString from 'magic-string'
 import { InternalResolver } from '../resolver'
@@ -130,8 +132,6 @@ const compileHtml = async (
   inlineLimit: number,
   resolver: InternalResolver
 ) => {
-  const { parse, transform } = require('@vue/compiler-dom')
-
   // @vue/compiler-core doesn't like lowercase doctypes
   html = html.replace(/<!doctype\s/i, '<!DOCTYPE ')
   const ast = (parse as typeof Parse)(html)

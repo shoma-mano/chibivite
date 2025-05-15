@@ -3,6 +3,10 @@ import { Plugin } from 'rollup'
 import { resolveAsset, registerAssets } from './buildPluginAsset'
 import { BuildConfig } from '../config'
 import hash_sum from 'hash-sum'
+// @ts-ignore
+import debug from 'debug'
+// @ts-ignore
+import CleanCSS from 'clean-css'
 import {
   urlRE,
   compileCss,
@@ -16,9 +20,7 @@ import {
 } from '@vue/compiler-sfc'
 import chalk from 'chalk'
 
-import debu from 'debug'
-
-const debug = debu('vite:build:css')
+const debugLog = debug('vite:build:css')
 
 const cssInjectionMarker = `__VITE_CSS__`
 const cssInjectionRE = /__VITE_CSS__\(\)/g
@@ -102,7 +104,7 @@ export const createBuildCssPlugin = ({
             if (fileName && content) {
               assets.set(fileName, content)
             }
-            debug(
+            debugLog(
               `url(${rawUrl}) -> ${
                 url.startsWith('data:') ? `base64 inlined` : `url(${url})`
               }`
@@ -190,10 +192,7 @@ export const createBuildCssPlugin = ({
   }
 }
 
-let CleanCSS: any
-
 function minifyCSS(css: string) {
-  CleanCSS = CleanCSS || require('clean-css')
   const res = new CleanCSS({ level: 2, rebase: false }).minify(css)
 
   if (res.errors && res.errors.length) {

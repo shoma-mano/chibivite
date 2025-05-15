@@ -1,31 +1,38 @@
-import path from 'path'
-import fs from 'fs-extra'
-import { RequestListener, Server } from 'http'
-import { ServerOptions } from 'https'
-import Koa, { DefaultState, DefaultContext } from 'koa'
+import type { DefaultContext, DefaultState } from 'koa'
+import type { RequestListener, Server } from 'node:http'
+import type { ServerOptions } from 'node:https'
+import type { ServerConfig } from '../config'
+import type { InternalResolver } from '../resolver'
+import type { HMRWatcher } from './serverPluginHmr'
+import type { SourceMap } from './serverPluginSourceMap'
+import http from 'node:http2'
+import path from 'node:path'
 import chokidar from 'chokidar'
-import { createResolver, InternalResolver } from '../resolver'
-import { moduleRewritePlugin } from './serverPluginModuleRewrite'
-import { moduleResolvePlugin } from './serverPluginModuleResolve'
-import { vuePlugin } from './serverPluginVue'
-import { hmrPlugin, HMRWatcher } from './serverPluginHmr'
-import { serveStaticPlugin } from './serverPluginServeStatic'
-import { jsonPlugin } from './serverPluginJson'
-import { cssPlugin } from './serverPluginCss'
-import { assetPathPlugin } from './serverPluginAssets'
-import { esbuildPlugin } from './serverPluginEsbuild'
-import { ServerConfig } from '../config'
+import fs from 'fs-extra'
+import Koa from 'koa'
+import * as optimizer from '../optimizer'
+import { createResolver } from '../resolver'
 import { createServerTransformPlugin } from '../transform'
-import { serviceWorkerPlugin } from './serverPluginServiceWorker'
-import { htmlRewritePlugin } from './serverPluginHtml'
-import { proxyPlugin } from './serverPluginProxy'
-import { createCertificate } from '../utils/createCertificate'
 import { cachedRead } from '../utils'
+import { createCertificate } from '../utils/createCertificate'
+import { assetPathPlugin } from './serverPluginAssets'
+import { cssPlugin } from './serverPluginCss'
 import { envPlugin } from './serverPluginEnv'
-export { rewriteImports } from './serverPluginModuleRewrite'
-import { sourceMapPlugin, SourceMap } from './serverPluginSourceMap'
-import { webWorkerPlugin } from './serverPluginWebWorker'
+import { esbuildPlugin } from './serverPluginEsbuild'
+import { hmrPlugin } from './serverPluginHmr'
+import { htmlRewritePlugin } from './serverPluginHtml'
+import { jsonPlugin } from './serverPluginJson'
+import { moduleResolvePlugin } from './serverPluginModuleResolve'
+import { moduleRewritePlugin } from './serverPluginModuleRewrite'
+import { proxyPlugin } from './serverPluginProxy'
+import { serveStaticPlugin } from './serverPluginServeStatic'
+import { serviceWorkerPlugin } from './serverPluginServiceWorker'
+import { sourceMapPlugin } from './serverPluginSourceMap'
+import { vuePlugin } from './serverPluginVue'
 import { wasmPlugin } from './serverPluginWasm'
+import { webWorkerPlugin } from './serverPluginWebWorker'
+
+export { rewriteImports } from './serverPluginModuleRewrite'
 
 export type ServerPlugin = (ctx: ServerPluginContext) => void
 
@@ -54,13 +61,13 @@ export function createServer(config: ServerConfig): Server {
     alias = {},
     transforms = [],
     vueCustomBlockTransforms = {},
-    optimizeDeps = {}
+    optimizeDeps = {},
   } = config
 
   const app = new Koa<State, Context>()
   const server = resolveServer(config, app.callback())
   const watcher = chokidar.watch(root, {
-    ignored: [/\bnode_modules\b/, /\b\.git\b/]
+    ignored: [/\bnode_modules\b/, /\b\.git\b/],
   }) as HMRWatcher
   const resolver = createResolver(root, resolvers, alias)
 
@@ -70,7 +77,7 @@ export function createServer(config: ServerConfig): Server {
     server,
     watcher,
     resolver,
-    config
+    config,
   }
 
   // attach server context to koa context
@@ -103,14 +110,14 @@ export function createServer(config: ServerConfig): Server {
     assetPathPlugin,
     webWorkerPlugin,
     wasmPlugin,
-    serveStaticPlugin
+    serveStaticPlugin,
   ]
-  resolvedPlugins.forEach((m) => m(context))
+  resolvedPlugins.forEach(m => m(context))
 
   const listen = server.listen.bind(server)
   server.listen = (async (...args: any[]) => {
     if (optimizeDeps.auto !== false) {
-      await require('../optimizer').optimizeDeps(config)
+      await optimizer.optimizeDeps(config)
     }
     return listen(...args)
   }) as any
@@ -120,18 +127,19 @@ export function createServer(config: ServerConfig): Server {
 
 function resolveServer(
   { https = false, httpsOptions = {} }: ServerConfig,
-  requestListener: RequestListener
+  requestListener: RequestListener,
 ) {
   if (https) {
-    return require('http2').createSecureServer(
+    return http.createSecureServer(
       {
         ...resolveHttpsConfig(httpsOptions),
-        allowHTTP1: true
+        allowHTTP1: true,
       },
-      requestListener
+      requestListener,
     )
-  } else {
-    return require('http').createServer(requestListener)
+  }
+  else {
+    return http.createServer(requestListener)
   }
 }
 
@@ -141,7 +149,7 @@ function resolveHttpsConfig(httpsOption: ServerOptions) {
     ca: readFileIfExists(ca),
     cert: readFileIfExists(cert),
     key: readFileIfExists(key),
-    pfx: readFileIfExists(pfx)
+    pfx: readFileIfExists(pfx),
   })
   if (!httpsOption.key || !httpsOption.cert) {
     httpsOption.cert = httpsOption.key = createCertificate()
@@ -153,7 +161,8 @@ function readFileIfExists(value?: string | Buffer | any) {
   if (value && !Buffer.isBuffer(value)) {
     try {
       return fs.readFileSync(path.resolve(value as string))
-    } catch (e) {
+    }
+    catch (e) {
       return value
     }
   }
