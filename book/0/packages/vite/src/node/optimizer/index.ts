@@ -1,24 +1,26 @@
-import fs from 'fs-extra'
-import path from 'path'
-import { createHash } from 'crypto'
-import { ResolvedConfig } from '../config'
+import type { Ora } from 'ora'
 import type Rollup from 'rollup'
-import * as rollup from 'rollup'
-import {
-  createResolver,
-  supportedExts,
-  resolveNodeModule,
+import type { ResolvedConfig } from '../config'
+import type {
   InternalResolver,
-  resolveNodeModuleFile
 } from '../resolver'
-import { createBaseRollupPlugins, onRollupWarning } from '../build'
-import { lookupFile, resolveFrom } from '../utils'
-import { init, parse } from 'es-module-lexer'
+import { createHash } from 'node:crypto'
+import path from 'node:path'
 import chalk from 'chalk'
-import { Ora } from 'ora'
-import ora from 'ora'
 // @ts-ignore
 import debug from 'debug'
+import { init, parse } from 'es-module-lexer'
+import fs from 'fs-extra'
+import ora from 'ora'
+import * as rollup from 'rollup'
+import { createBaseRollupPlugins, onRollupWarning } from '../build'
+import {
+  createResolver,
+  resolveNodeModule,
+  resolveNodeModuleFile,
+  supportedExts,
+} from '../resolver'
+import { lookupFile, resolveFrom } from '../utils'
 import { createDepAssetPlugin, depAssetExternalPlugin } from './pluginAssets'
 import { createBuiltInBailPlugin } from './pluginBuiltInBail'
 
@@ -29,7 +31,7 @@ const KNOWN_IGNORE_LIST = new Set([
   'tailwindcss',
   '@tailwindcss/ui',
   '@pika/react',
-  '@pika/react-dom'
+  '@pika/react-dom',
 ])
 
 export interface DepOptimizationOptions {
@@ -63,7 +65,7 @@ export const OPTIMIZE_CACHE_DIR = `node_modules/.vite_opt_cache`
 
 export async function optimizeDeps(
   config: ResolvedConfig & { force?: boolean },
-  asCommand = false
+  asCommand = false,
 ) {
   const log = asCommand ? console.log : debugLog
   const root = config.root || process.cwd()
@@ -71,9 +73,9 @@ export async function optimizeDeps(
   if (fs.existsSync(path.join(root, 'web_modules'))) {
     console.warn(
       chalk.yellow(
-        `[vite] vite 0.15 has built-in dependency pre-bundling and resolving ` +
-          `from web_modules is no longer supported.`
-      )
+        `[vite] vite 0.15 has built-in dependency pre-bundling and resolving `
+        + `from web_modules is no longer supported.`,
+      ),
     )
   }
 
@@ -91,7 +93,8 @@ export async function optimizeDeps(
     let prevhash
     try {
       prevhash = await fs.readFile(hashPath, 'utf-8')
-    } catch (e) {}
+    }
+    catch (e) {}
     // hash is consistent, no need to re-bundle
     if (prevhash === depHash) {
       debugLog('Hash is consistent. Skipping. Use --force to override.')
@@ -117,12 +120,12 @@ export async function optimizeDeps(
   if (options.link) {
     options.link.forEach((linkedDep) => {
       const depRoot = path.dirname(
-        resolveFrom(root, `${linkedDep}/package.json`)
+        resolveFrom(root, `${linkedDep}/package.json`),
       )
       const { qualified: q, external: e } = resolveQualifiedDeps(
         depRoot,
         options,
-        resolver
+        resolver,
       )
       Object.keys(q).forEach((id) => {
         if (!qualified[id]) {
@@ -143,7 +146,8 @@ export async function optimizeDeps(
       const pkg = resolveNodeModule(root, id, resolver)
       if (pkg && pkg.entryFilePath) {
         qualified[id] = pkg.entryFilePath
-      } else {
+      }
+      else {
         const filePath = resolveNodeModuleFile(root, id)
         if (filePath) {
           qualified[id] = filePath
@@ -164,20 +168,21 @@ export async function optimizeDeps(
     console.log(chalk.greenBright(`[vite] Optimizable dependencies detected:`))
     console.log(
       Object.keys(qualified)
-        .map((id) => chalk.yellow(id))
-        .join(`, `)
+        .map(id => chalk.yellow(id))
+        .join(`, `),
     )
   }
 
   let spinner: Ora | undefined
   const msg = asCommand
     ? `Pre-bundling dependencies to speed up dev server page load...`
-    : `Pre-bundling them to speed up dev server page load...\n` +
-      `(this will be run only when your dependencies have changed)`
+    : `Pre-bundling them to speed up dev server page load...\n`
+      + `(this will be run only when your dependencies have changed)`
   if (process.env.DEBUG || process.env.NODE_ENV === 'test') {
     console.log(msg)
-  } else {
-    spinner = ora(msg + '\n').start()
+  }
+  else {
+    spinner = ora(`${msg}\n`).start()
   }
 
   try {
@@ -189,12 +194,12 @@ export async function optimizeDeps(
       ...config.rollupInputOptions,
       plugins: [
         createBuiltInBailPlugin(
-          config.optimizeDeps && config.optimizeDeps.allowNodeBuiltins
+          config.optimizeDeps && config.optimizeDeps.allowNodeBuiltins,
         ),
         depAssetExternalPlugin,
         ...(await createBaseRollupPlugins(root, resolver, config)),
-        createDepAssetPlugin(resolver)
-      ]
+        createDepAssetPlugin(resolver),
+      ],
     })
 
     const { output } = await bundle.generate({
@@ -202,7 +207,7 @@ export async function optimizeDeps(
       format: 'es',
       exports: 'named',
       entryFileNames: '[name].js',
-      chunkFileNames: 'common/[name]-[hash].js'
+      chunkFileNames: 'common/[name]-[hash].js',
     })
 
     spinner && spinner.stop()
@@ -217,34 +222,38 @@ export async function optimizeDeps(
     }
 
     await fs.writeFile(hashPath, depHash)
-  } catch (e: any) {
+  }
+  catch (e: any) {
     spinner && spinner.stop()
     if (asCommand) {
       throw e
-    } else {
+    }
+    else {
       console.error(chalk.red(`\n[vite] Dep optimization failed with error:`))
       console.error(chalk.red(e.message))
       if (e.code === 'PARSE_ERROR') {
         console.error(chalk.cyan(path.relative(root, e.loc.file)))
         console.error(chalk.dim(e.frame))
-      } else if (e.message.match('Node built-in')) {
+      }
+      else if (e.message.match('Node built-in')) {
         console.log()
         console.log(
           chalk.yellow(
-            `Tip:\nMake sure your "dependencies" only include packages that you\n` +
-              `intend to use in the browser. If it's a Node.js package, it\n` +
-              `should be in "devDependencies".\n\n` +
-              `If you do intend to use this dependency in the browser and the\n` +
-              `dependency does not actually use these Node built-ins in the\n` +
-              `browser, you can add the dependency (not the built-in) to the\n` +
-              `"optimizeDeps.allowNodeBuiltins" option in vite.config.js.\n\n` +
-              `If that results in a runtime error, then unfortunately the\n` +
-              `package is not distributed in a web-friendly format. You should\n` +
-              `open an issue in its repo, or look for a modern alternative.`
-          )
+            `Tip:\nMake sure your "dependencies" only include packages that you\n`
+            + `intend to use in the browser. If it's a Node.js package, it\n`
+            + `should be in "devDependencies".\n\n`
+            + `If you do intend to use this dependency in the browser and the\n`
+            + `dependency does not actually use these Node built-ins in the\n`
+            + `browser, you can add the dependency (not the built-in) to the\n`
+            + `"optimizeDeps.allowNodeBuiltins" option in vite.config.js.\n\n`
+            + `If that results in a runtime error, then unfortunately the\n`
+            + `package is not distributed in a web-friendly format. You should\n`
+            + `open an issue in its repo, or look for a modern alternative.`,
+          ),
           // TODO link to docs once we have it
         )
-      } else {
+      }
+      else {
         console.error(e)
       }
       process.exit(1)
@@ -261,14 +270,14 @@ interface FilteredDeps {
 function resolveQualifiedDeps(
   root: string,
   options: DepOptimizationOptions,
-  resolver: InternalResolver
+  resolver: InternalResolver,
 ): FilteredDeps {
   const { include, exclude, link } = options
   const pkgContent = lookupFile(root, ['package.json'])
   if (!pkgContent) {
     return {
       qualified: {},
-      external: []
+      external: [],
     }
   }
 
@@ -297,8 +306,8 @@ function resolveQualifiedDeps(
       console.log(root, id)
       console.error(
         chalk.yellow(
-          `[vite] cannot resolve entry for dependency ${chalk.cyan(id)}.`
-        )
+          `[vite] cannot resolve entry for dependency ${chalk.cyan(id)}.`,
+        ),
       )
       return false
     }
@@ -311,8 +320,8 @@ function resolveQualifiedDeps(
       debugLog(`skipping ${id} (entry file does not exist)`)
       console.error(
         chalk.yellow(
-          `[vite] dependency ${id} declares non-existent entry file ${entryFilePath}.`
-        )
+          `[vite] dependency ${id} declares non-existent entry file ${entryFilePath}.`,
+        ),
       )
       return false
     }
@@ -344,14 +353,14 @@ function resolveQualifiedDeps(
 
   // mark non-optimized deps as external
   const external = deps
-    .filter((id) => !qualifiedDeps.includes(id))
+    .filter(id => !qualifiedDeps.includes(id))
     // make sure aliased deps are external
     // https://github.com/vitejs/vite-plugin-react/issues/4
-    .map((id) => resolver.alias(id) || id)
+    .map(id => resolver.alias(id) || id)
 
   return {
     qualified,
-    external
+    external,
   }
 }
 
@@ -361,7 +370,7 @@ let cachedHash: string | undefined
 
 export function getDepHash(
   root: string,
-  configPath: string | undefined
+  configPath: string | undefined,
 ): string {
   if (cachedHash) {
     return cachedHash
@@ -380,10 +389,11 @@ const cacheDirCache = new Map<string, string | null>()
 
 export function resolveOptimizedCacheDir(
   root: string,
-  pkgPath?: string
+  pkgPath?: string,
 ): string | null {
   const cached = cacheDirCache.get(root)
-  if (cached !== undefined) return cached
+  if (cached !== undefined)
+    return cached
   pkgPath = pkgPath || lookupFile(root, [`package.json`], true /* pathOnly */)
   if (!pkgPath) {
     return null

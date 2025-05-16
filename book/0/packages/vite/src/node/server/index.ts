@@ -1,6 +1,5 @@
 import type { DefaultContext, DefaultState } from 'koa'
-import type { RequestListener, Server } from 'node:http'
-import type { ServerOptions } from 'node:https'
+import type { Server } from 'node:http'
 import type { ServerConfig } from '../config'
 import type { InternalResolver } from '../resolver'
 import type { HMRWatcher } from './serverPluginHmr'
@@ -65,7 +64,7 @@ export function createServer(config: ServerConfig): Server {
   } = config
 
   const app = new Koa<State, Context>()
-  const server = resolveServer(config, app.callback())
+  const server = http.createServer(app.callback())
   const watcher = chokidar.watch(root, {
     ignored: [/\bnode_modules\b/, /\b\.git\b/],
   }) as HMRWatcher
@@ -82,7 +81,6 @@ export function createServer(config: ServerConfig): Server {
 
   // attach server context to koa context]
   app.use((ctx, next) => {
-      console.log('ctx')
     Object.assign(ctx, context)
     ctx.read = cachedRead.bind(null, ctx)
     return next()
@@ -124,48 +122,4 @@ export function createServer(config: ServerConfig): Server {
   }) as any
 
   return server
-}
-
-function resolveServer(
-  { https = false, httpsOptions = {} }: ServerConfig,
-  requestListener: RequestListener,
-) {
-  if (https) {
-    return http.createSecureServer(
-      {
-        ...resolveHttpsConfig(httpsOptions),
-        allowHTTP1: true,
-      },
-      requestListener,
-    )
-  }
-  else {
-    return http.createServer(requestListener)
-  }
-}
-
-function resolveHttpsConfig(httpsOption: ServerOptions) {
-  const { ca, cert, key, pfx } = httpsOption
-  Object.assign(httpsOption, {
-    ca: readFileIfExists(ca),
-    cert: readFileIfExists(cert),
-    key: readFileIfExists(key),
-    pfx: readFileIfExists(pfx),
-  })
-  if (!httpsOption.key || !httpsOption.cert) {
-    httpsOption.cert = httpsOption.key = createCertificate()
-  }
-  return httpsOption
-}
-
-function readFileIfExists(value?: string | Buffer | any) {
-  if (value && !Buffer.isBuffer(value)) {
-    try {
-      return fs.readFileSync(path.resolve(value as string))
-    }
-    catch (e) {
-      return value
-    }
-  }
-  return value
 }

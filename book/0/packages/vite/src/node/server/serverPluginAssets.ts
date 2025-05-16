@@ -1,4 +1,4 @@
-import { ServerPlugin } from '.'
+import type { ServerPlugin } from '.'
 import { isImportRequest, isStaticAsset } from '../utils'
 
 export const assetPathPlugin: ServerPlugin = ({ app }) => {
