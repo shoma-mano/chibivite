@@ -90,10 +90,8 @@ export function resolveVue(root: string): ResolvedVuePaths {
   // strict package managers - e.g. pnpm / yarn 2
   const runtimeDomPath = join(dirname(import.meta.resolve('@vue/runtime-dom')), './dist/compiler-dom.esm-bundler.js')
   const runtimeCorePath = join(dirname(import.meta.resolve('@vue/runtime-core')), './dist/runtime-core.esm-bundler.js')
-  console.log('runtimeDomPath', runtimeDomPath)
-  console.log('runtimeCorePath', runtimeCorePath)
-  const reactivityPath = resolvePath('reactivity', runtimeCorePath)
-  const sharedPath = resolvePath('shared', runtimeCorePath)
+  const reactivityPath = join(dirname(import.meta.resolve('@vue/reactivity')), './dist/reactivity.esm-bundler.js')
+  const sharedPath = join(dirname(import.meta.resolve('@vue/shared')), './dist/shared.esm-bundler.js')
 
   resolved = {
     'version': vueVersion!,

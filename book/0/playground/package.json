@@ -6,7 +6,6 @@
   },
   "dependencies": {
     "@babel/runtime": "link:../node_modules/@babel/runtime",
-    "@vue/compiler-core": "3.5.14",
     "bootstrap": "link:../node_modules/bootstrap",
     "lodash-es": "link:../node_modules/lodash-es",
     "moment": "link:../node_modules/moment",
@@ -15,6 +14,6 @@
     "resolve-browser-field-test-package": "link:./resolve/browser-field",
     "rewrite-optimized-test-package": "link:./resolve/rewrite-optimized/test-package",
     "rewrite-unoptimized-test-package": "link:./resolve/rewrite-unoptimized/test-package",
-    "vite":"workspace:*"
+    "vite": "workspace:*"
   }
 }

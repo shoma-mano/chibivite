@@ -4,11 +4,9 @@ import type { Context } from '../server'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import qs from 'node:querystring'
+import resolve from 'resolve'
 import slash from 'slash'
 import { supportedExts } from '../resolver'
-
-const require = createRequire(import.meta.url)
-const resolve = require('resolve')
 
 const isRunningWithYarnPnp = false
 

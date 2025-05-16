@@ -80,7 +80,8 @@ export function createServer(config: ServerConfig): Server {
     config,
   }
 
-  // attach server context to koa context
+  // attach server context to koa context]
+  console.log('ctx')
   app.use((ctx, next) => {
     Object.assign(ctx, context)
     ctx.read = cachedRead.bind(null, ctx)

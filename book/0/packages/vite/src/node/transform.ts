@@ -1,7 +1,8 @@
-import { ServerPlugin } from './server'
-import { Plugin as RollupPlugin } from 'rollup'
-import { parseWithQuery, readBody, isImportRequest } from './utils'
-import { SourceMap, mergeSourceMap } from './server/serverPluginSourceMap'
+import type { Plugin as RollupPlugin } from 'rollup'
+import type { ServerPlugin } from './server'
+import type { SourceMap } from './server/serverPluginSourceMap'
+import { mergeSourceMap } from './server/serverPluginSourceMap'
+import { isImportRequest, parseWithQuery, readBody } from './utils'
 
 type ParsedQuery = Record<string, string | string[] | undefined>
 
@@ -48,7 +49,7 @@ export type CustomBlockTransform = TransformFn
 
 export function createServerTransformPlugin(
   transforms: Transform[],
-  customBlockTransforms: Record<string, CustomBlockTransform>
+  customBlockTransforms: Record<string, CustomBlockTransform>,
 ): ServerPlugin {
   return ({ app }) => {
     if (!transforms.length && !Object.keys(customBlockTransforms).length) {
@@ -73,17 +74,18 @@ export function createServerTransformPlugin(
           path,
           query,
           isImport,
-          isBuild
+          isBuild,
         }
         if (t.test(transformContext)) {
           code = code || (await readBody(ctx.body))!
           const result = await t.transform({
             ...transformContext,
-            code
+            code,
           })
           if (typeof result === 'string') {
             code = result
-          } else {
+          }
+          else {
             code = result.code
             if (result.map) {
               ctx.map = mergeSourceMap(ctx.map, result.map)
@@ -106,7 +108,7 @@ export function createServerTransformPlugin(
             path,
             query,
             isImport,
-            isBuild
+            isBuild,
           })
         }
       }
@@ -116,7 +118,7 @@ export function createServerTransformPlugin(
 
 export function createBuildJsTransformPlugin(
   transforms: Transform[],
-  customBlockTransforms: Record<string, CustomBlockTransform>
+  customBlockTransforms: Record<string, CustomBlockTransform>,
 ): RollupPlugin {
   return {
     name: 'vite:transforms',
@@ -129,7 +131,8 @@ export function createBuildJsTransformPlugin(
         const result = await t(ctx)
         if (typeof result === 'string') {
           transformed = result
-        } else {
+        }
+        else {
           transformed = result.code
           if (result.map) {
             map = mergeSourceMap(map, result.map)
@@ -144,7 +147,7 @@ export function createBuildJsTransformPlugin(
           path,
           query,
           isImport: true,
-          isBuild: true
+          isBuild: true,
         }
         if (t.test(transformContext)) {
           await runTransform(t.transform, transformContext)
@@ -160,7 +163,8 @@ export function createBuildJsTransformPlugin(
           for (const key in query) {
             if (key.startsWith(`lang.`)) {
               normalizedQuery.lang = key.slice(5)
-            } else {
+            }
+            else {
               normalizedQuery[key] = query[key] as string
             }
           }
@@ -170,15 +174,15 @@ export function createBuildJsTransformPlugin(
             path,
             query: normalizedQuery,
             isImport: true,
-            isBuild: true
+            isBuild: true,
           })
         }
       }
 
       return {
         code: transformed,
-        map
+        map,
       }
-    }
+    },
   }
 }

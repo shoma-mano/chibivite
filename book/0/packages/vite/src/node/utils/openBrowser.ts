@@ -6,11 +6,11 @@
  * https://github.com/facebook/create-react-app/blob/master/LICENSE
  */
 
-import path from 'path'
-import open from 'open'
-import execa from 'execa'
+import { execSync } from 'node:child_process'
+import path from 'node:path'
 import chalk from 'chalk'
-import { execSync } from 'child_process'
+import execa from 'execa'
+import open from 'open'
 
 // https://github.com/sindresorhus/open#app
 const OSX_CHROME = 'google chrome'
@@ -18,7 +18,7 @@ const OSX_CHROME = 'google chrome'
 const enum Actions {
   NONE,
   BROWSER,
-  SCRIPT
+  SCRIPT,
 }
 
 function getBrowserEnv() {
@@ -30,11 +30,14 @@ function getBrowserEnv() {
   if (!value) {
     // Default.
     action = Actions.BROWSER
-  } else if (value.toLowerCase().endsWith('.js')) {
+  }
+  else if (value.toLowerCase().endsWith('.js')) {
     action = Actions.SCRIPT
-  } else if (value.toLowerCase() === 'none') {
+  }
+  else if (value.toLowerCase() === 'none') {
     action = Actions.NONE
-  } else {
+  }
+  else {
     action = Actions.BROWSER
   }
   return { action, value }
@@ -43,19 +46,18 @@ function getBrowserEnv() {
 function executeNodeScript(scriptPath: string, url: string) {
   const extraArgs = process.argv.slice(2)
   const child = execa('node', [scriptPath, ...extraArgs, url], {
-    stdio: 'inherit'
+    stdio: 'inherit',
   })
   child.on('close', (code) => {
     if (code !== 0) {
       console.log()
       console.log(
         chalk.red(
-          'The script specified as BROWSER environment variable failed.'
-        )
+          'The script specified as BROWSER environment variable failed.',
+        ),
       )
-      console.log(chalk.cyan(scriptPath) + ' exited with code ' + code + '.')
+      console.log(`${chalk.cyan(scriptPath)} exited with code ${code}.`)
       console.log()
-      return
     }
   })
   return true
@@ -66,21 +68,22 @@ function startBrowserProcess(browser: string | undefined, url: string) {
   // requested a different browser, we can try opening
   // Chrome with AppleScript. This lets us reuse an
   // existing tab when possible instead of creating a new one.
-  const shouldTryOpenChromeWithAppleScript =
-    process.platform === 'darwin' &&
-    (typeof browser !== 'string' || browser === OSX_CHROME)
+  const shouldTryOpenChromeWithAppleScript
+    = process.platform === 'darwin'
+      && (typeof browser !== 'string' || browser === OSX_CHROME)
 
   if (shouldTryOpenChromeWithAppleScript) {
     try {
       // Try our best to reuse existing tab
       // on OS X Google Chrome with AppleScript
       execSync('ps cax | grep "Google Chrome"')
-      execSync('osascript openChrome.applescript "' + encodeURI(url) + '"', {
+      execSync(`osascript openChrome.applescript "${encodeURI(url)}"`, {
         cwd: path.resolve(import.meta.dirname, '../../bin'),
-        stdio: 'ignore'
+        stdio: 'ignore',
       })
       return true
-    } catch (err) {
+    }
+    catch (err) {
       // Ignore errors
     }
   }
@@ -96,10 +99,11 @@ function startBrowserProcess(browser: string | undefined, url: string) {
   // Fallback to open
   // (It will always open new tab)
   try {
-    var options = { app: browser, url: true }
+    let options = { app: browser, url: true }
     open(url, options).catch(() => {}) // Prevent `unhandledRejection` error.
     return true
-  } catch (err) {
+  }
+  catch (err) {
     return false
   }
 }

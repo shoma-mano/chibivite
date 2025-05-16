@@ -1,5 +1,5 @@
+import type { Statement } from '@babel/types'
 import { parse as _parse } from '@babel/parser'
-import { Statement } from '@babel/types'
 
 export function parse(source: string): Statement[] {
   return _parse(source, {
@@ -12,7 +12,7 @@ export function parse(source: string): Statement[] {
       // this should be kept in async with @vue/compiler-core's support range
       'bigInt',
       'optionalChaining',
-      'nullishCoalescingOperator'
-    ]
+      'nullishCoalescingOperator',
+    ],
   }).program.body
 }
