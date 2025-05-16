@@ -88,18 +88,19 @@ export function resolveVue(root: string): ResolvedVuePaths {
 
   // resolve nested dependencies with correct base dirs so that this works with
   // strict package managers - e.g. pnpm / yarn 2
-  const runtimeDomPath = join(dirname(import.meta.resolve('@vue/runtime-dom')), './dist/compiler-dom.esm-bundler.js')
+  const runtimeDomPath = join(dirname(import.meta.resolve('@vue/runtime-dom')), './dist/runtime-dom.esm-bundler.js')
+  console.log('runtimeDomPath', fileURLToPath(runtimeDomPath))
   const runtimeCorePath = join(dirname(import.meta.resolve('@vue/runtime-core')), './dist/runtime-core.esm-bundler.js')
   const reactivityPath = join(dirname(import.meta.resolve('@vue/reactivity')), './dist/reactivity.esm-bundler.js')
   const sharedPath = join(dirname(import.meta.resolve('@vue/shared')), './dist/shared.esm-bundler.js')
 
   resolved = {
     'version': vueVersion!,
-    'vue': runtimeDomPath,
-    '@vue/runtime-dom': runtimeDomPath,
-    '@vue/runtime-core': runtimeCorePath,
-    '@vue/reactivity': reactivityPath,
-    '@vue/shared': sharedPath,
+    'vue': fileURLToPath(runtimeDomPath),
+    '@vue/runtime-dom': fileURLToPath(runtimeDomPath),
+    '@vue/runtime-core': fileURLToPath(runtimeCorePath),
+    '@vue/reactivity': fileURLToPath(reactivityPath),
+    '@vue/shared': fileURLToPath(sharedPath),
     'compiler': compilerPath,
     isLocal,
   }

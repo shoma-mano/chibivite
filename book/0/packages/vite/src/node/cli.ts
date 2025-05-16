@@ -135,7 +135,7 @@ async function resolveOptions(mode: any) {
 async function runServe(options) {
   const server = createServer(options)
 
-  let port = options.port || 3000
+  let port = options.port || 3001
   const hostname = options.hostname || 'localhost'
   const protocol = options.https ? 'https' : 'http'
 
@@ -175,7 +175,7 @@ async function runServe(options) {
     })
     console.log()
     debug('vite:server')(`server ready in ${Date.now() - start}ms.`)
-
+    console.log('after debug')
     if (options.open) {
       openBrowser(
         `${protocol}://${hostname}:${port}`,

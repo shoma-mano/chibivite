@@ -5,7 +5,7 @@ import type { ServerConfig } from '../config'
 import type { InternalResolver } from '../resolver'
 import type { HMRWatcher } from './serverPluginHmr'
 import type { SourceMap } from './serverPluginSourceMap'
-import http from 'node:http2'
+import http from 'node:http'
 import path from 'node:path'
 import chokidar from 'chokidar'
 import fs from 'fs-extra'
@@ -81,8 +81,8 @@ export function createServer(config: ServerConfig): Server {
   }
 
   // attach server context to koa context]
-  console.log('ctx')
   app.use((ctx, next) => {
+      console.log('ctx')
     Object.assign(ctx, context)
     ctx.read = cachedRead.bind(null, ctx)
     return next()
