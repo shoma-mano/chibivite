@@ -140,6 +140,7 @@ export function rewriteImports(
         let hasLiteralDynamicId = false
         if (dynamicIndex >= 0) {
           const literalIdMatch = id.match(/^(?:'([^']+)'|"([^"]+)")$/)
+          console.log('literalIdMatch', literalIdMatch)
           if (literalIdMatch) {
             hasLiteralDynamicId = true
             id = literalIdMatch[1] || literalIdMatch[2]
@@ -158,6 +159,7 @@ export function rewriteImports(
             resolver,
             timestamp
           )
+          console.log('resolved', resolved)
 
           if (resolved !== id) {
             debug(`    "${id}" --> "${resolved}"`)
@@ -246,7 +248,6 @@ export const resolveImport = (
   timestamp?: string
 ): string => {
   id = resolver.alias(id) || id
-
   if (bareImportRE.test(id)) {
     // directly resolve bare module names to its entry path so that relative
     // imports from it (including source map urls) can work correctly

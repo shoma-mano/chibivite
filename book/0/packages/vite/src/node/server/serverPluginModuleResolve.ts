@@ -1,11 +1,11 @@
-import path from 'path'
+import type { ServerPlugin } from '.'
+import path from 'node:path'
+import { URL } from 'node:url'
 import chalk from 'chalk'
-import fs from 'fs-extra'
-import { ServerPlugin } from '.'
-import { resolveVue } from '../utils'
-import { URL } from 'url'
-import { resolveOptimizedModule, resolveNodeModuleFile } from '../resolver'
 import debu from 'debug'
+import fs from 'fs-extra'
+import { resolveNodeModuleFile, resolveOptimizedModule } from '../resolver'
+import { resolveVue } from '../utils'
 
 const debug = debu('vite:resolve')
 
@@ -14,7 +14,7 @@ export const moduleFileToIdMap = new Map()
 
 export const moduleRE = /^\/@modules\//
 
-const getDebugPath = (root: string, p: string) => {
+function getDebugPath(root: string, p: string) {
   const relative = path.relative(root, p)
   return relative.startsWith('..') ? p : relative
 }
@@ -63,7 +63,8 @@ export const moduleResolvePlugin: ServerPlugin = ({ root, app, resolver }) => {
     const isMapFile = ctx.path.endsWith('.map')
     if (referer) {
       importer = new URL(referer).pathname
-    } else if (isMapFile) {
+    }
+    else if (isMapFile) {
       // for some reason Chrome doesn't provide referer for source map requests.
       // do our best to reverse-infer the importer.
       importer = ctx.path.replace(/\.map$/, '')
@@ -80,7 +81,7 @@ export const moduleResolvePlugin: ServerPlugin = ({ root, app, resolver }) => {
       // our last try: infer from the dir of importer
       const inferMapPath = path.join(
         path.dirname(importerFilePath),
-        path.basename(ctx.path)
+        path.basename(ctx.path),
       )
       if (fs.existsSync(inferMapPath)) {
         return serve(id, inferMapPath, 'map file in linked pkg')
@@ -89,9 +90,9 @@ export const moduleResolvePlugin: ServerPlugin = ({ root, app, resolver }) => {
 
     console.error(
       chalk.red(
-        `[vite] Failed to resolve module import "${id}". ` +
-          `(imported by ${importer || 'unknown'})`
-      )
+        `[vite] Failed to resolve module import "${id}". `
+        + `(imported by ${importer || 'unknown'})`,
+      ),
     )
     ctx.status = 404
   })
