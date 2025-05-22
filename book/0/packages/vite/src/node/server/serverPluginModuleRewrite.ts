@@ -1,33 +1,37 @@
-import { ServerPlugin } from '.'
-import path from 'path'
-import LRUCache from 'lru-cache'
-import MagicString from 'magic-string'
+import type {
+  ImportSpecifier,
+} from 'es-module-lexer'
+import type { ServerPlugin } from '.'
+import type {
+  InternalResolver,
+} from '../resolver'
+import path from 'node:path'
+import chalk from 'chalk'
+import debu from 'debug'
 import {
   init as initLexer,
   parse as parseImports,
-  ImportSpecifier
 } from 'es-module-lexer'
+import LRUCache from 'lru-cache'
+import MagicString from 'magic-string'
 import {
-  InternalResolver,
+  jsSrcRE,
   resolveBareModuleRequest,
-  jsSrcRE
 } from '../resolver'
-import {
-  debugHmr,
-  importerMap,
-  importeeMap,
-  ensureMapEntry,
-  rewriteFileWithHMR,
-  hmrClientPublicPath,
-  hmrDirtyFilesMap,
-  latestVersionsMap
-} from './serverPluginHmr'
-import { readBody, cleanUrl, isExternalUrl } from '../utils'
-import chalk from 'chalk'
+import { cleanUrl, isExternalUrl, readBody } from '../utils'
 import { isCSSRequest } from '../utils/cssUtils'
 import { envPublicPath } from './serverPluginEnv'
 
-import debu from 'debug'
+import {
+  debugHmr,
+  ensureMapEntry,
+  hmrClientPublicPath,
+  hmrDirtyFilesMap,
+  importeeMap,
+  importerMap,
+  latestVersionsMap,
+  rewriteFileWithHMR,
+} from './serverPluginHmr'
 
 const debug = debu('vite:rewrite')
 
@@ -44,7 +48,7 @@ export const moduleRewritePlugin: ServerPlugin = ({
   root,
   app,
   watcher,
-  resolver
+  resolver,
 }) => {
   app.use(async (ctx, next) => {
     await next()
@@ -57,20 +61,21 @@ export const moduleRewritePlugin: ServerPlugin = ({
     // this allows us to post-process javascript produced by user middlewares
     // regardless of the extension of the original files.
     if (
-      ctx.body &&
-      ctx.response.is('js') &&
-      !isCSSRequest(ctx.path) &&
-      !ctx.url.endsWith('.map') &&
+      ctx.body
+      && ctx.response.is('js')
+      && !isCSSRequest(ctx.path)
+      && !ctx.url.endsWith('.map')
       // skip internal client
-      !ctx.path.startsWith(hmrClientPublicPath) &&
+      && !ctx.path.startsWith(hmrClientPublicPath)
       // only need to rewrite for <script> part in vue files
-      !((ctx.path.endsWith('.vue') || ctx.vue) && ctx.query.type != null)
+      && !((ctx.path.endsWith('.vue') || ctx.vue) && ctx.query.type != null)
     ) {
       const content = await readBody(ctx.body)
       if (!ctx.query.t && rewriteCache.has(content)) {
         debug(`(cached) ${ctx.url}`)
         ctx.body = rewriteCache.get(content)
-      } else {
+      }
+      else {
         await initLexer
         // dynamic import may contain extension-less path,
         // (.e.g import(runtimePathString))
@@ -84,11 +89,12 @@ export const moduleRewritePlugin: ServerPlugin = ({
           content!,
           importer,
           resolver,
-          ctx.query.t
+          ctx.query.t,
         )
         rewriteCache.set(content, ctx.body)
       }
-    } else {
+    }
+    else {
       debug(`(skipped) ${ctx.url}`)
     }
   })
@@ -106,20 +112,21 @@ export function rewriteImports(
   source: string,
   importer: string,
   resolver: InternalResolver,
-  timestamp?: string
+  timestamp?: string,
 ) {
   try {
     let imports: ImportSpecifier[] = []
     try {
       imports = parseImports(source)[0]
-    } catch (e) {
+    }
+    catch (e) {
       console.error(
         chalk.yellow(
           `[vite] failed to parse ${chalk.cyan(
-            importer
-          )} for import rewrite.\nIf you are using ` +
-            `JSX, make sure to named the file with the .jsx extension.`
-        )
+            importer,
+          )} for import rewrite.\nIf you are using `
+          + `JSX, make sure to named the file with the .jsx extension.`,
+        ),
       )
     }
 
@@ -157,7 +164,7 @@ export function rewriteImports(
             importer,
             id,
             resolver,
-            timestamp
+            timestamp,
           )
           console.log('resolved', resolved)
 
@@ -166,7 +173,7 @@ export function rewriteImports(
             s.overwrite(
               start,
               end,
-              hasLiteralDynamicId ? `'${resolved}'` : resolved
+              hasLiteralDynamicId ? `'${resolved}'` : resolved,
             )
             hasReplaced = true
           }
@@ -174,15 +181,16 @@ export function rewriteImports(
           // save the import chain for hmr analysis
           const importee = cleanUrl(resolved)
           if (
-            importee !== importer &&
+            importee !== importer
             // no need to track hmr client or module dependencies
-            importee !== hmrClientPublicPath
+            && importee !== hmrClientPublicPath
           ) {
             currentImportees.add(importee)
             debugHmr(`        ${importer} imports ${importee}`)
             ensureMapEntry(importerMap, importee).add(importer)
           }
-        } else {
+        }
+        else {
           if (id === 'import.meta') {
             if (!hasRewrittenForHMR && source.slice(end, end + 4) === '.hot') {
               debugHmr(`rewriting ${importer} for HMR.`)
@@ -193,13 +201,14 @@ export function rewriteImports(
 
             if (!hasInjectedEnv && source.slice(end, end + 4) === '.env') {
               s.prepend(
-                `import __VITE_ENV__ from "${envPublicPath}";\n` +
-                  `import.meta.env = __VITE_ENV__;\n`
+                `import __VITE_ENV__ from "${envPublicPath}";\n`
+                + `import.meta.env = __VITE_ENV__;\n`,
               )
               hasInjectedEnv = true
               hasReplaced = true
             }
-          } else {
+          }
+          else {
             debug(`[vite] ignored dynamic import(${id})`)
           }
         }
@@ -223,36 +232,33 @@ export function rewriteImports(
       }
 
       return hasReplaced ? s.toString() : source
-    } else {
+    }
+    else {
       debug(`${importer}: no imports found.`)
     }
 
     return source
-  } catch (e) {
+  }
+  catch (e) {
     console.error(
       `[vite] Error: module imports rewrite failed for ${importer}.\n`,
-      e
+      e,
     )
     debug(source)
     return source
   }
 }
 
-const bareImportRE = /^[^\/\.]/
+const bareImportRE = /^[^/.]/
 
-export const resolveImport = (
-  root: string,
-  importer: string,
-  id: string,
-  resolver: InternalResolver,
-  timestamp?: string
-): string => {
+export function resolveImport(root: string, importer: string, id: string, resolver: InternalResolver, timestamp?: string): string {
   id = resolver.alias(id) || id
   if (bareImportRE.test(id)) {
     // directly resolve bare module names to its entry path so that relative
     // imports from it (including source map urls) can work correctly
     id = `/@modules/${resolveBareModuleRequest(root, id, importer, resolver)}`
-  } else {
+  }
+  else {
     // 1. relative to absolute
     //    ./foo -> /some/path/foo
     let { pathname, query } = resolver.resolveRelativeRequest(importer, id)
@@ -276,7 +282,8 @@ export const resolveImport = (
     if (dirtyFiles && dirtyFiles.has(cleanId)) {
       // 1. this is a marked dirty file (in the import chain of the changed file)
       id += `${id.includes(`?`) ? `&` : `?`}t=${timestamp}`
-    } else if (latestVersionsMap.has(cleanId)) {
+    }
+    else if (latestVersionsMap.has(cleanId)) {
       // 2. this file was previously hot-updated and has an updated version
       id += `${id.includes(`?`) ? `&` : `?`}t=${latestVersionsMap.get(cleanId)}`
     }

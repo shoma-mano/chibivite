@@ -1,39 +1,40 @@
-import qs from 'querystring'
-import chalk from 'chalk'
-import path from 'path'
-import { Context, ServerPlugin } from '.'
-import {
+import type {
+  CompilerOptions,
   SFCBlock,
   SFCDescriptor,
-  SFCTemplateBlock,
   SFCStyleBlock,
+  SFCStyleCompileOptions,
   SFCStyleCompileResults,
-  CompilerOptions,
-  SFCStyleCompileOptions
+  SFCTemplateBlock,
 } from '@vue/compiler-sfc'
-import { resolveCompiler, resolveVue } from '../utils/resolveVue'
-import hash_sum from 'hash-sum'
-import LRUCache from 'lru-cache'
-import { debugHmr, importerMap, ensureMapEntry } from './serverPluginHmr'
-import {
-  resolveFrom,
-  cachedRead,
-  cleanUrl,
-  watchFileIfOutOfRoot
-} from '../utils'
-import { transform } from '../esbuildService'
-import { InternalResolver } from '../resolver'
-import { seenUrls } from './serverPluginServeStatic'
-import { codegenCss } from './serverPluginCss'
-import { compileCss, rewriteCssUrls } from '../utils/cssUtils'
-import { parse } from '../utils/babelParse'
-import MagicString from 'magic-string'
-import { resolveImport } from './serverPluginModuleRewrite'
-import { SourceMap, mergeSourceMap } from './serverPluginSourceMap'
-// @ts-ignore
-import getEtag from 'etag'
+import type { Context, ServerPlugin } from '.'
+import type { InternalResolver } from '../resolver'
+import type { SourceMap } from './serverPluginSourceMap'
+import path from 'node:path'
+import qs from 'node:querystring'
+import chalk from 'chalk'
 // @ts-ignore
 import debug from 'debug'
+// @ts-ignore
+import getEtag from 'etag'
+import hash_sum from 'hash-sum'
+import LRUCache from 'lru-cache'
+import MagicString from 'magic-string'
+import { transform } from '../esbuildService'
+import {
+  cachedRead,
+  cleanUrl,
+  resolveFrom,
+  watchFileIfOutOfRoot,
+} from '../utils'
+import { parse } from '../utils/babelParse'
+import { compileCss, rewriteCssUrls } from '../utils/cssUtils'
+import { resolveCompiler, resolveVue } from '../utils/resolveVue'
+import { codegenCss } from './serverPluginCss'
+import { debugHmr, ensureMapEntry, importerMap } from './serverPluginHmr'
+import { resolveImport } from './serverPluginModuleRewrite'
+import { seenUrls } from './serverPluginServeStatic'
+import { mergeSourceMap } from './serverPluginSourceMap'
 
 const debugLog = debug('vite:sfc')
 
@@ -53,7 +54,7 @@ interface ResultWithMap {
 }
 
 export const vueCache = new LRUCache<string, CacheEntry>({
-  max: 65535
+  max: 65535,
 })
 
 export const vuePlugin: ServerPlugin = ({
@@ -61,14 +62,14 @@ export const vuePlugin: ServerPlugin = ({
   app,
   resolver,
   watcher,
-  config
+  config,
 }) => {
   const etagCacheCheck = (ctx: Context) => {
     ctx.etag = getEtag(ctx.body)
     // only add 304 tag check if not using service worker to cache user code
     if (!config.serviceWorker) {
-      ctx.status =
-        seenUrls.has(ctx.url) && ctx.etag === ctx.get('If-None-Match')
+      ctx.status
+        = seenUrls.has(ctx.url) && ctx.etag === ctx.get('If-None-Match')
           ? 304
           : 200
       seenUrls.add(ctx.url)
@@ -101,14 +102,14 @@ export const vuePlugin: ServerPlugin = ({
           root,
           descriptor.script,
           ctx,
-          resolver
+          resolver,
         )
       }
       ctx.type = 'js'
       const { code, map } = await compileSFCMain(
         descriptor,
         filePath,
-        publicPath
+        publicPath,
       )
       ctx.body = code
       ctx.map = map
@@ -126,8 +127,8 @@ export const vuePlugin: ServerPlugin = ({
         templateBlock,
         filePath,
         publicPath,
-        descriptor.styles.some((s) => s.scoped),
-        config.vueCompilerOptions
+        descriptor.styles.some(s => s.scoped),
+        config.vueCompilerOptions,
       )
       ctx.body = code
       ctx.map = map
@@ -147,7 +148,7 @@ export const vuePlugin: ServerPlugin = ({
         index,
         filePath,
         publicPath,
-        config.cssPreprocessOptions
+        config.cssPreprocessOptions,
       )
       ctx.type = 'js'
       ctx.body = codegenCss(`${id}-${index}`, result.code, result.modules)
@@ -164,7 +165,7 @@ export const vuePlugin: ServerPlugin = ({
         customBlock,
         index,
         filePath,
-        publicPath
+        publicPath,
       )
       ctx.type = 'js'
       ctx.body = result
@@ -175,7 +176,7 @@ export const vuePlugin: ServerPlugin = ({
   const handleVueReload = (watcher.handleVueReload = async (
     filePath: string,
     timestamp: number = Date.now(),
-    content?: string
+    content?: string,
   ) => {
     const publicPath = resolver.fileToRequest(filePath)
     const cacheEntry = vueCache.get(filePath)
@@ -204,11 +205,11 @@ export const vuePlugin: ServerPlugin = ({
       send({
         type: 'vue-reload',
         path: publicPath,
-        timestamp
+        timestamp,
       })
       console.log(
-        chalk.green(`[vite:hmr] `) +
-          `${path.relative(root, filePath)} updated. (reload)`
+        `${chalk.green(`[vite:hmr] `)
+        }${path.relative(root, filePath)} updated. (reload)`,
       )
     }
 
@@ -229,14 +230,14 @@ export const vuePlugin: ServerPlugin = ({
     // and it may be used in JS. It also needs to trigger a vue-style-update
     // event so the client busts the sw cache.
     if (
-      prevStyles.some((s) => s.module != null) ||
-      nextStyles.some((s) => s.module != null)
+      prevStyles.some(s => s.module != null)
+      || nextStyles.some(s => s.module != null)
     ) {
       return sendReload()
     }
 
     // force reload if scoped status has changed
-    if (prevStyles.some((s) => s.scoped) !== nextStyles.some((s) => s.scoped)) {
+    if (prevStyles.some(s => s.scoped) !== nextStyles.some(s => s.scoped)) {
       return sendReload()
     }
 
@@ -248,7 +249,7 @@ export const vuePlugin: ServerPlugin = ({
         send({
           type: 'style-update',
           path: `${publicPath}?type=style&index=${i}`,
-          timestamp
+          timestamp,
         })
       }
     })
@@ -260,7 +261,7 @@ export const vuePlugin: ServerPlugin = ({
         type: 'style-remove',
         path: publicPath,
         id: `${styleId}-${i + nextStyles.length}`,
-        timestamp
+        timestamp,
       })
     })
 
@@ -272,7 +273,7 @@ export const vuePlugin: ServerPlugin = ({
     if (
       nextCustoms.some(
         (_, i) =>
-          !prevCustoms[i] || !isEqualBlock(prevCustoms[i], nextCustoms[i])
+          !prevCustoms[i] || !isEqualBlock(prevCustoms[i], nextCustoms[i]),
       )
     ) {
       return sendReload()
@@ -282,7 +283,7 @@ export const vuePlugin: ServerPlugin = ({
       send({
         type: 'vue-rerender',
         path: publicPath,
-        timestamp
+        timestamp,
       })
     }
 
@@ -295,10 +296,10 @@ export const vuePlugin: ServerPlugin = ({
     }
     if (updateType.length) {
       console.log(
-        chalk.green(`[vite:hmr] `) +
-          `${path.relative(root, filePath)} updated. (${updateType.join(
-            ' & '
-          )})`
+        `${chalk.green(`[vite:hmr] `)
+        }${path.relative(root, filePath)} updated. (${updateType.join(
+          ' & ',
+        )})`,
       )
     }
   })
@@ -311,24 +312,28 @@ export const vuePlugin: ServerPlugin = ({
 }
 
 function isEqualBlock(a: SFCBlock | null, b: SFCBlock | null) {
-  if (!a && !b) return true
-  if (!a || !b) return false
+  if (!a && !b)
+    return true
+  if (!a || !b)
+    return false
   // src imports will trigger their own updates
-  if (a.src && b.src && a.src === b.src) return true
-  if (a.content !== b.content) return false
+  if (a.src && b.src && a.src === b.src)
+    return true
+  if (a.content !== b.content)
+    return false
   const keysA = Object.keys(a.attrs)
   const keysB = Object.keys(b.attrs)
   if (keysA.length !== keysB.length) {
     return false
   }
-  return keysA.every((key) => a.attrs[key] === b.attrs[key])
+  return keysA.every(key => a.attrs[key] === b.attrs[key])
 }
 
 async function resolveSrcImport(
   root: string,
   block: SFCBlock,
   ctx: Context,
-  resolver: InternalResolver
+  resolver: InternalResolver,
 ) {
   const importer = ctx.path
   const importee = cleanUrl(resolveImport(root, importer, block.src!, resolver))
@@ -345,7 +350,7 @@ async function resolveSrcImport(
 async function parseSFC(
   root: string,
   filePath: string,
-  content?: string | Buffer
+  content?: string | Buffer,
 ): Promise<SFCDescriptor | undefined> {
   let cached = vueCache.get(filePath)
   if (cached && cached.descriptor) {
@@ -356,7 +361,8 @@ async function parseSFC(
   if (!content) {
     try {
       content = await cachedRead(null, filePath)
-    } catch (e) {
+    }
+    catch (e) {
       return
     }
   }
@@ -369,7 +375,7 @@ async function parseSFC(
   const { parse, generateCodeFrame } = resolveCompiler(root)
   const { descriptor, errors } = parse(content, {
     filename: filePath,
-    sourceMap: true
+    sourceMap: true,
   })
 
   if (errors.length) {
@@ -382,11 +388,11 @@ async function parseSFC(
       console.error(chalk.yellow(e.message))
       if (e.loc) {
         console.error(
-          generateCodeFrame(
+          `${generateCodeFrame(
             content as string,
             e.loc.start.offset,
-            e.loc.end.offset
-          ) + `\n`
+            e.loc.end.offset,
+          )}\n`,
         )
       }
     })
@@ -404,7 +410,7 @@ const defaultExportRE = /((?:^|\n|;)\s*)export default/
 async function compileSFCMain(
   descriptor: SFCDescriptor,
   filePath: string,
-  publicPath: string
+  publicPath: string,
 ): Promise<ResultWithMap> {
   let cached = vueCache.get(filePath)
   if (cached && cached.script) {
@@ -417,12 +423,12 @@ async function compileSFCMain(
     let content = descriptor.script.content
     if (descriptor.script.lang === 'ts') {
       const { code, map } = await transform(content, publicPath, {
-        loader: 'ts'
+        loader: 'ts',
       })
       content = code
       descriptor.script.map = mergeSourceMap(
         descriptor.script.map as SourceMap,
-        JSON.parse(map!)
+        JSON.parse(map!),
       ) as SourceMap & { version: string }
     }
     // rewrite export default.
@@ -434,7 +440,8 @@ async function compileSFCMain(
       replaced = rewriteDefaultExport(content)
     }
     code += replaced
-  } else {
+  }
+  else {
     code += `const __script = {}`
   }
 
@@ -442,8 +449,9 @@ async function compileSFCMain(
   let hasCSSModules = false
   if (descriptor.styles) {
     descriptor.styles.forEach((s, i) => {
-      const styleRequest = publicPath + `?type=style&index=${i}`
-      if (s.scoped) hasScoped = true
+      const styleRequest = `${publicPath}?type=style&index=${i}`
+      if (s.scoped)
+        hasScoped = true
       if (s.module) {
         if (!hasCSSModules) {
           code += `\nconst __cssModules = __script.__cssModules = {}`
@@ -452,10 +460,11 @@ async function compileSFCMain(
         const styleVar = `__style${i}`
         const moduleName = typeof s.module === 'string' ? s.module : '$style'
         code += `\nimport ${styleVar} from ${JSON.stringify(
-          styleRequest + '&module'
+          `${styleRequest}&module`,
         )}`
         code += `\n__cssModules[${JSON.stringify(moduleName)}] = ${styleVar}`
-      } else {
+      }
+      else {
         code += `\nimport ${JSON.stringify(styleRequest)}`
       }
     })
@@ -468,8 +477,8 @@ async function compileSFCMain(
     descriptor.customBlocks.forEach((c, i) => {
       const attrsQuery = attrsToQuery(c.attrs, c.lang)
       const blockTypeQuery = `&blockType=${qs.escape(c.type)}`
-      let customRequest =
-        publicPath + `?type=custom&index=${i}${blockTypeQuery}${attrsQuery}`
+      let customRequest
+        = `${publicPath}?type=custom&index=${i}${blockTypeQuery}${attrsQuery}`
       const customVar = `block${i}`
       code += `\nimport ${customVar} from ${JSON.stringify(customRequest)}\n`
       code += `if (typeof ${customVar} === 'function') ${customVar}(__script)\n`
@@ -477,9 +486,9 @@ async function compileSFCMain(
   }
 
   if (descriptor.template) {
-    const templateRequest = publicPath + `?type=template`
+    const templateRequest = `${publicPath}?type=template`
     code += `\nimport { render as __render } from ${JSON.stringify(
-      templateRequest
+      templateRequest,
     )}`
     code += `\n__script.render = __render`
   }
@@ -489,7 +498,7 @@ async function compileSFCMain(
 
   const result: ResultWithMap = {
     code,
-    map: descriptor.script && (descriptor.script.map as SourceMap)
+    map: descriptor.script && (descriptor.script.map as SourceMap),
   }
 
   cached = cached || { styles: [], customs: [] }
@@ -504,7 +513,7 @@ function compileSFCTemplate(
   filePath: string,
   publicPath: string,
   scoped: boolean,
-  userOptions: CompilerOptions | undefined
+  userOptions: CompilerOptions | undefined,
 ): ResultWithMap {
   let cached = vueCache.get(filePath)
   if (cached && cached.template) {
@@ -519,19 +528,19 @@ function compileSFCTemplate(
     filename: filePath,
     inMap: template.map,
     transformAssetUrls: {
-      base: path.posix.dirname(publicPath)
+      base: path.posix.dirname(publicPath),
     },
     compilerOptions: {
       ...userOptions,
       scopeId: scoped ? `data-v-${hash_sum(publicPath)}` : null,
       runtimeModuleName: resolveVue(root).isLocal
         ? // in local mode, vue would have been optimized so must be referenced
-          // with .js postfix
-          '/@modules/vue.js'
-        : '/@modules/vue'
+      // with .js postfix
+        '/@modules/vue.js'
+        : '/@modules/vue',
     },
     preprocessLang: template.lang,
-    preprocessCustomRequire: (id: string) => require(resolveFrom(root, id))
+    preprocessCustomRequire: (id: string) => require(resolveFrom(root, id)),
   })
 
   if (errors.length) {
@@ -539,7 +548,8 @@ function compileSFCTemplate(
     errors.forEach((e) => {
       if (typeof e === 'string') {
         console.error(e)
-      } else {
+      }
+      else {
         const locString = e.loc
           ? `:${e.loc.start.line}:${e.loc.start.column}`
           : ``
@@ -548,8 +558,8 @@ function compileSFCTemplate(
         if (e.loc) {
           const original = template.map!.sourcesContent![0]
           console.error(
-            generateCodeFrame(original, e.loc.start.offset, e.loc.end.offset) +
-              `\n`
+            `${generateCodeFrame(original, e.loc.start.offset, e.loc.end.offset)
+            }\n`,
           )
         }
       }
@@ -558,7 +568,7 @@ function compileSFCTemplate(
 
   const result = {
     code,
-    map: map as SourceMap
+    map: map as SourceMap,
   }
 
   cached = cached || { styles: [], customs: [] }
@@ -575,7 +585,7 @@ async function compileSFCStyle(
   index: number,
   filePath: string,
   publicPath: string,
-  preprocessOptions: SFCStyleCompileOptions['preprocessOptions']
+  preprocessOptions: SFCStyleCompileOptions['preprocessOptions'],
 ): Promise<SFCStyleCompileResults> {
   let cached = vueCache.get(filePath)
   const cachedEntry = cached && cached.styles && cached.styles[index]
@@ -589,12 +599,12 @@ async function compileSFCStyle(
   const { generateCodeFrame } = resolveCompiler(root)
   const result = (await compileCss(root, publicPath, {
     source: style.content,
-    filename: filePath + `?type=style&index=${index}`,
+    filename: `${filePath}?type=style&index=${index}`,
     id: ``, // will be computed in compileCss
     scoped: style.scoped != null,
     modules: style.module != null,
     preprocessLang: style.lang as SFCStyleCompileOptions['preprocessLang'],
-    preprocessOptions
+    preprocessOptions,
   })) as SFCStyleCompileResults
 
   if (result.errors.length) {
@@ -602,33 +612,34 @@ async function compileSFCStyle(
     result.errors.forEach((e: any) => {
       if (typeof e === 'string') {
         console.error(e)
-      } else {
+      }
+      else {
         const lineOffset = style.loc.start.line - 1
         if (e.line && e.column) {
           console.log(
-            chalk.underline(`${filePath}:${e.line + lineOffset}:${e.column}`)
+            chalk.underline(`${filePath}:${e.line + lineOffset}:${e.column}`),
           )
-        } else {
+        }
+        else {
           console.log(chalk.underline(filePath))
         }
         const filePathRE = new RegExp(
-          '.*' +
-            path.basename(filePath).replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&') +
-            '(:\\d+:\\d+:\\s*)?'
+          `.*${
+            path.basename(filePath).replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&')
+          }(:\\d+:\\d+:\\s*)?`,
         )
         const cleanMsg = e.message.replace(filePathRE, '')
         console.error(chalk.yellow(cleanMsg))
         if (e.line && e.column && cleanMsg.split(/\n/g).length === 1) {
           const original = style.map!.sourcesContent![0]
-          const offset =
-            original
+          const offset
+            = original
               .split(/\r?\n/g)
               .slice(0, e.line + lineOffset - 1)
-              .map((l) => l.length)
-              .reduce((total, l) => total + l + 1, 0) +
-            e.column -
-            1
-          console.error(generateCodeFrame(original, offset, offset + 1)) + `\n`
+              .map(l => l.length)
+              .reduce((total, l) => total + l + 1, 0)
+              + e.column
+              - 1`${console.error(generateCodeFrame(original, offset, offset + 1))}\n`
         }
       }
     })
@@ -648,7 +659,7 @@ function resolveCustomBlock(
   custom: SFCBlock,
   index: number,
   filePath: string,
-  publicPath: string
+  publicPath: string,
 ): string {
   let cached = vueCache.get(filePath)
   const cachedEntry = cached && cached.customs && cached.customs[index]

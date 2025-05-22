@@ -17,29 +17,29 @@
 // 6. If the graph walk finished without running into dead ends, send the
 //    client to update all `hmrBoundaries`.
 
-import { ServerPlugin } from '.'
-import fs from 'fs'
-import WebSocket from 'ws'
-import path from 'path'
+import type {
+  Expression,
+  IfStatement,
+  Node,
+  Statement,
+  StringLiteral,
+} from '@babel/types'
+import type { FSWatcher } from 'chokidar'
+import type MagicString from 'magic-string'
+import type { ServerPlugin } from '.'
+import type { InternalResolver } from '../resolver'
+import fs from 'node:fs'
+import path from 'node:path'
 import chalk from 'chalk'
-import { vueCache, srcImportMap } from './serverPluginVue'
-import { resolveImport } from './serverPluginModuleRewrite'
-import { FSWatcher } from 'chokidar'
-import MagicString from 'magic-string'
-import { parse } from '../utils/babelParse'
-import { InternalResolver } from '../resolver'
+import debu from 'debug'
 import LRUCache from 'lru-cache'
 import slash from 'slash'
-import { isCSSRequest } from '../utils/cssUtils'
-import {
-  Node,
-  StringLiteral,
-  Statement,
-  Expression,
-  IfStatement
-} from '@babel/types'
+import WebSocket from 'ws'
 import { resolveCompiler } from '../utils'
-import debu from 'debug'
+import { parse } from '../utils/babelParse'
+import { isCSSRequest } from '../utils/cssUtils'
+import { resolveImport } from './serverPluginModuleRewrite'
+import { srcImportMap, vueCache } from './serverPluginVue'
 
 export const debugHmr = debu('vite:hmr')
 
@@ -95,7 +95,7 @@ export const hmrPlugin: ServerPlugin = ({
   server,
   watcher,
   resolver,
-  config
+  config,
 }) => {
   const hmrClient = fs
     .readFileSync(hmrClientFilePath, 'utf-8')
@@ -106,7 +106,8 @@ export const hmrPlugin: ServerPlugin = ({
       ctx.type = 'js'
       ctx.status = 200
       ctx.body = hmrClient
-    } else {
+    }
+    else {
       if (ctx.query.t) {
         latestVersionsMap.set(ctx.path, ctx.query.t)
       }
@@ -149,7 +150,7 @@ export const hmrPlugin: ServerPlugin = ({
 
   const handleJSReload = (watcher.handleJSReload = (
     filePath: string,
-    timestamp: number = Date.now()
+    timestamp: number = Date.now(),
   ) => {
     // normal js file, but could be compiled from anything.
     // bust the vue cache in case this is a src imported file
@@ -169,43 +170,45 @@ export const hmrPlugin: ServerPlugin = ({
         publicPath,
         importers || new Set(),
         hmrBoundaries,
-        dirtyFiles
+        dirtyFiles,
       )
 
       // record dirty files - this is used when HMR requests coming in with
       // timestamp to determine what files need to be force re-fetched
       hmrDirtyFilesMap.set(String(timestamp), dirtyFiles)
 
-      const relativeFile = '/' + slash(path.relative(root, filePath))
+      const relativeFile = `/${slash(path.relative(root, filePath))}`
       if (hasDeadEnd) {
         send({
           type: 'full-reload',
           path: publicPath,
-          timestamp
+          timestamp,
         })
-        console.log(chalk.green(`[vite] `) + `page reloaded.`)
-      } else {
+        console.log(`${chalk.green(`[vite] `)}page reloaded.`)
+      }
+      else {
         hmrBoundaries.forEach((boundary) => {
           console.log(
-            chalk.green(`[vite:hmr] `) +
-              `${boundary} updated due to change in ${relativeFile}.`
+            `${chalk.green(`[vite:hmr] `)
+            }${boundary} updated due to change in ${relativeFile}.`,
           )
           send({
             type: boundary.endsWith('vue') ? 'vue-reload' : 'js-update',
             path: boundary,
             changeSrcPath: publicPath,
-            timestamp
+            timestamp,
           })
         })
       }
-    } else {
+    }
+    else {
       debugHmr(`no importers for ${publicPath}.`)
       // bust sw cache anyway since this may be a full dynamic import.
       if (config.serviceWorker) {
         send({
           type: 'sw-bust-cache',
           path: publicPath,
-          timestamp
+          timestamp,
         })
       }
     }
@@ -225,7 +228,7 @@ function walkImportChain(
   importers: Set<string>,
   hmrBoundaries: Set<string>,
   dirtyFiles: Set<string>,
-  currentChain: string[] = []
+  currentChain: string[] = [],
 ): boolean {
   debugger
   if (hmrDeclineSet.has(importee)) {
@@ -247,19 +250,21 @@ function walkImportChain(
         dirtyFiles.add(importer)
       }
       hmrBoundaries.add(importer)
-      currentChain.forEach((file) => dirtyFiles.add(file))
-    } else {
+      currentChain.forEach(file => dirtyFiles.add(file))
+    }
+    else {
       const parentImpoters = importerMap.get(importer)
       if (!parentImpoters) {
         return true
-      } else if (!currentChain.includes(importer)) {
+      }
+      else if (!currentChain.includes(importer)) {
         if (
           walkImportChain(
             importer,
             parentImpoters,
             hmrBoundaries,
             dirtyFiles,
-            currentChain.concat(importer)
+            currentChain.concat(importer),
           )
         ) {
           return true
@@ -289,7 +294,7 @@ export function rewriteFileWithHMR(
   source: string,
   importer: string,
   resolver: InternalResolver,
-  s: MagicString
+  s: MagicString,
 ) {
   let hasDeclined = false
   let importMetaConditional: IfStatement | undefined
@@ -306,24 +311,24 @@ export function rewriteFileWithHMR(
   const checkHotCall = (
     node: Expression,
     isTopLevel: boolean,
-    isDevBlock: boolean
+    isDevBlock: boolean,
   ) => {
     if (
-      node.type === 'CallExpression' &&
-      node.callee.type === 'MemberExpression' &&
-      isMetaHot(node.callee.object)
+      node.type === 'CallExpression'
+      && node.callee.type === 'MemberExpression'
+      && isMetaHot(node.callee.object)
     ) {
       if (isTopLevel) {
         const { generateCodeFrame } = resolveCompiler(root)
         console.warn(
           chalk.yellow(
-            `[vite] HMR syntax error in ${importer}: import.meta.hot.accept() ` +
-              `should be wrapped in \`if (import.meta.hot) {}\` conditional ` +
-              `blocks so that they can be tree-shaken in production.`
-          )
+            `[vite] HMR syntax error in ${importer}: import.meta.hot.accept() `
+            + `should be wrapped in \`if (import.meta.hot) {}\` conditional `
+            + `blocks so that they can be tree-shaken in production.`,
+          ),
         )
         console.warn(
-          chalk.yellow(generateCodeFrame(source, node.start!, node.end!))
+          chalk.yellow(generateCodeFrame(source, node.start!, node.end!)),
         )
       }
 
@@ -332,10 +337,10 @@ export function rewriteFileWithHMR(
         if (!isDevBlock) {
           console.error(
             chalk.yellow(
-              `[vite] HMR syntax error in ${importer}: import.meta.hot.${method}() ` +
-                `cannot be conditional except for \`if (import.meta.hot)\` check ` +
-                `because the server relies on static analysis to construct the HMR graph.`
-            )
+              `[vite] HMR syntax error in ${importer}: import.meta.hot.${method}() `
+              + `cannot be conditional except for \`if (import.meta.hot)\` check `
+              + `because the server relies on static analysis to construct the HMR graph.`,
+            ),
           )
         }
         // register the accepted deps
@@ -344,9 +349,9 @@ export function rewriteFileWithHMR(
           if (method !== 'acceptDeps') {
             console.error(
               chalk.yellow(
-                `[vite] HMR syntax error in ${importer}: hot.accept() only accepts ` +
-                  `a single callback. Use hot.acceptDeps() to handle dep updates.`
-              )
+                `[vite] HMR syntax error in ${importer}: hot.accept() only accepts `
+                + `a single callback. Use hot.acceptDeps() to handle dep updates.`,
+              ),
             )
           }
           // import.meta.hot.accept(['./foo', './bar'], () => {})
@@ -354,46 +359,50 @@ export function rewriteFileWithHMR(
             if (e && e.type !== 'StringLiteral') {
               console.error(
                 chalk.yellow(
-                  `[vite] HMR syntax error in ${importer}: hot.accept() deps ` +
-                    `list can only contain string literals.`
-                )
+                  `[vite] HMR syntax error in ${importer}: hot.accept() deps `
+                  + `list can only contain string literals.`,
+                ),
               )
-            } else if (e) {
+            }
+            else if (e) {
               registerDep(e)
             }
           })
-        } else if (accepted && accepted.type === 'StringLiteral') {
+        }
+        else if (accepted && accepted.type === 'StringLiteral') {
           if (method !== 'acceptDeps') {
             console.error(
               chalk.yellow(
-                `[vite] HMR syntax error in ${importer}: hot.accept() only accepts ` +
-                  `a single callback. Use hot.acceptDeps() to handle dep updates.`
-              )
+                `[vite] HMR syntax error in ${importer}: hot.accept() only accepts `
+                + `a single callback. Use hot.acceptDeps() to handle dep updates.`,
+              ),
             )
           }
           // import.meta.hot.accept('./foo', () => {})
           registerDep(accepted)
-        } else if (!accepted || accepted.type.endsWith('FunctionExpression')) {
+        }
+        else if (!accepted || accepted.type.endsWith('FunctionExpression')) {
           if (method !== 'accept') {
             console.error(
               chalk.yellow(
-                `[vite] HMR syntax error in ${importer}: hot.acceptDeps() ` +
-                  `expects a dependency or an array of dependencies. ` +
-                  `Use hot.accept() for handling self updates.`
-              )
+                `[vite] HMR syntax error in ${importer}: hot.acceptDeps() `
+                + `expects a dependency or an array of dependencies. `
+                + `Use hot.accept() for handling self updates.`,
+              ),
             )
           }
           // self accepting
           // import.meta.hot.accept() OR import.meta.hot.accept(() => {})
           ensureMapEntry(hmrAcceptanceMap, importer).add(importer)
           debugHmr(`${importer} self accepts`)
-        } else {
+        }
+        else {
           console.error(
             chalk.yellow(
-              `[vite] HMR syntax error in ${importer}: ` +
-                `import.meta.hot.accept() expects a dep string, an array of ` +
-                `deps, or a callback.`
-            )
+              `[vite] HMR syntax error in ${importer}: `
+              + `import.meta.hot.accept() expects a dep string, an array of `
+              + `deps, or a callback.`,
+            ),
           )
         }
       }
@@ -408,7 +417,7 @@ export function rewriteFileWithHMR(
   const checkStatements = (
     node: Statement,
     isTopLevel: boolean,
-    isDevBlock: boolean
+    isDevBlock: boolean,
   ) => {
     if (node.type === 'ExpressionStatement') {
       // top level hot.accept() call
@@ -422,8 +431,8 @@ export function rewriteFileWithHMR(
         importMetaConditional = node
       }
       if (node.consequent.type === 'BlockStatement') {
-        node.consequent.body.forEach((s) =>
-          checkStatements(s, false, isDevBlock)
+        node.consequent.body.forEach(s =>
+          checkStatements(s, false, isDevBlock),
         )
       }
       if (node.consequent.type === 'ExpressionStatement') {
@@ -433,14 +442,14 @@ export function rewriteFileWithHMR(
   }
 
   const ast = parse(source)
-  ast.forEach((s) => checkStatements(s, true, false))
+  ast.forEach(s => checkStatements(s, true, false))
 
   if (importMetaConditional) {
     // inject import.meta.hot
     s.prependLeft(
       importMetaConditional.start!,
-      `import { createHotContext } from "${hmrClientPublicPath}"; ` +
-        `import.meta.hot = createHotContext(${JSON.stringify(importer)}); `
+      `import { createHotContext } from "${hmrClientPublicPath}"; `
+      + `import.meta.hot = createHotContext(${JSON.stringify(importer)}); `,
     )
   }
 
@@ -452,9 +461,9 @@ export function rewriteFileWithHMR(
 
 function isMetaHot(node: Node) {
   return (
-    node.type === 'MemberExpression' &&
-    node.object.type === 'MetaProperty' &&
-    node.property.type === 'Identifier' &&
-    node.property.name === 'hot'
+    node.type === 'MemberExpression'
+    && node.object.type === 'MetaProperty'
+    && node.property.type === 'Identifier'
+    && node.property.name === 'hot'
   )
 }
