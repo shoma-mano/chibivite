@@ -20,6 +20,7 @@
     "@types/connect": "^3.4.37",
     "@types/node": "^20.11.30",
     "@types/serve-static": "^1.15.5",
+    "@typescript/native-preview": "7.0.0-dev.20250522.2",
     "typescript": "^5.4.3"
   }
 }
