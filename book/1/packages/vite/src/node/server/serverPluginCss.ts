@@ -1,27 +1,28 @@
-import { basename } from 'path'
-import { Context, ServerPlugin } from '.'
+import type { Context, ServerPlugin } from '.'
+import type { InternalResolver } from '../resolver'
+import { basename } from 'node:path'
+import qs from 'node:querystring'
+import chalk from 'chalk'
+import debu from 'debug'
 import hash_sum from 'hash-sum'
 import { cleanUrl, isImportRequest, readBody } from '../utils'
-import { srcImportMap, vueCache } from './serverPluginVue'
 import {
   compileCss,
   cssImportMap,
   cssPreprocessLangRE,
   getCssImportBoundaries,
+  isCSSRequest,
   rewriteCssUrls,
-  isCSSRequest
 } from '../utils/cssUtils'
-import qs from 'querystring'
-import chalk from 'chalk'
-import { InternalResolver } from '../resolver'
 import { hmrClientPublicPath } from './serverPluginHmr'
+import { srcImportMap, vueCache } from './serverPluginVue'
 
 interface ProcessedEntry {
   css: string
   modules?: Record<string, string>
 }
 
-export const debugCSS = require('debug')('vite:css')
+export const debugCSS = debu('vite:css')
 
 const processedCSS = new Map<string, ProcessedEntry>()
 
@@ -30,9 +31,9 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
     await next()
     // handle .css imports
     if (
-      isCSSRequest(ctx.path) &&
+      isCSSRequest(ctx.path)
       // note ctx.body could be null if upstream set status to 304
-      ctx.body
+      && ctx.body
     ) {
       const id = JSON.stringify(hash_sum(ctx.path))
       if (isImportRequest(ctx)) {
@@ -42,7 +43,8 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
         ctx.type = 'js'
         const { css, modules } = processedCSS.get(ctx.path)!
         ctx.body = codegenCss(id, css, modules)
-      } else {
+      }
+      else {
         // raw request, return compiled css
         if (!processedCSS.has(ctx.path)) {
           await processCss(root, ctx)
@@ -59,12 +61,12 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
 
       /** filter unused files */
       if (
-        !cssImportMap.has(filePath) &&
-        !processedCSS.has(publicPath) &&
-        !srcImportMap.has(filePath)
+        !cssImportMap.has(filePath)
+        && !processedCSS.has(publicPath)
+        && !srcImportMap.has(filePath)
       ) {
         return debugCSS(
-          `${basename(publicPath)} has changed, but it is not currently in use`
+          `${basename(publicPath)} has changed, but it is not currently in use`,
         )
       }
 
@@ -87,10 +89,12 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
         for (let boundary of boundaries) {
           if (boundary.includes('.module')) {
             moduleCssUpdate(boundary, resolver)
-          } else if (boundary.includes('.vue')) {
+          }
+          else if (boundary.includes('.vue')) {
             vueCache.del(cleanUrl(boundary))
             vueStyleUpdate(resolver.fileToRequest(boundary))
-          } else {
+          }
+          else {
             normalCssUpdate(resolver.fileToRequest(boundary))
           }
         }
@@ -104,11 +108,11 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
   function vueStyleUpdate(styleImport: string) {
     const publicPath = cleanUrl(styleImport)
     const index = qs.parse(styleImport.split('?', 2)[1]).index
-    console.log(chalk.green(`[vite:hmr] `) + `${publicPath} updated. (style)`)
+    console.log(`${chalk.green(`[vite:hmr] `)}${publicPath} updated. (style)`)
     watcher.send({
       type: 'style-update',
       path: `${publicPath}?type=style&index=${index}`,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     })
   }
 
@@ -126,7 +130,7 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
     watcher.send({
       type: 'style-update',
       path: publicPath,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     })
   }
 
@@ -145,7 +149,7 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
       scoped: false,
       modules: ctx.path.includes('.module'),
       preprocessLang: ctx.path.replace(cssPreprocessLangRE, '$2') as any,
-      preprocessOptions: ctx.config.cssPreprocessOptions
+      preprocessOptions: ctx.config.cssPreprocessOptions,
     })
 
     if (typeof result === 'string') {
@@ -162,7 +166,7 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
 
     processedCSS.set(ctx.path, {
       css: result.code,
-      modules: result.modules
+      modules: result.modules,
     })
   }
 }
@@ -170,15 +174,16 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
 export function codegenCss(
   id: string,
   css: string,
-  modules?: Record<string, string>
+  modules?: Record<string, string>,
 ): string {
-  let code =
-    `import { updateStyle } from "${hmrClientPublicPath}"\n` +
-    `const css = ${JSON.stringify(css)}\n` +
-    `updateStyle(${JSON.stringify(id)}, css)\n`
+  let code
+    = `import { updateStyle } from "${hmrClientPublicPath}"\n`
+      + `const css = ${JSON.stringify(css)}\n`
+      + `updateStyle(${JSON.stringify(id)}, css)\n`
   if (modules) {
     code += `export default ${JSON.stringify(modules)}`
-  } else {
+  }
+  else {
     code += `export default css`
   }
   return code

@@ -1,11 +1,12 @@
-import path from 'path'
-import fs from 'fs-extra'
-import { Plugin, OutputBundle } from 'rollup'
-import { cleanUrl, isStaticAsset } from '../utils'
-import hash_sum from 'hash-sum'
-import slash from 'slash'
-import mime from 'mime-types'
+import type { OutputBundle, Plugin } from 'rollup'
+import path from 'node:path'
 import debu from 'debug'
+import fs from 'fs-extra'
+import hash_sum from 'hash-sum'
+import mime from 'mime-types'
+import slash from 'slash'
+
+import { cleanUrl, isStaticAsset } from '../utils'
 
 const debug = debu('vite:build:asset')
 
@@ -18,13 +19,7 @@ interface AssetCacheEntry {
 const assetResolveCache = new Map<string, AssetCacheEntry>()
 const publicDirRE = /^public(\/|\\)/
 
-export const resolveAsset = async (
-  id: string,
-  root: string,
-  publicBase: string,
-  assetsDir: string,
-  inlineLimit: number
-): Promise<AssetCacheEntry> => {
+export async function resolveAsset(id: string, root: string, publicBase: string, assetsDir: string, inlineLimit: number): Promise<AssetCacheEntry> {
   id = cleanUrl(id)
   const cached = assetResolveCache.get(id)
   if (cached) {
@@ -41,7 +36,7 @@ export const resolveAsset = async (
       // file is resolved from public dir, it will be copied verbatim so no
       // need to read content here.
       resolved = {
-        url: slash(path.join(publicBase, relativePath))
+        url: slash(path.join(publicBase, relativePath)),
       }
     }
   }
@@ -49,7 +44,7 @@ export const resolveAsset = async (
   if (!resolved) {
     if (publicDirRE.test(relativePath)) {
       resolved = {
-        url: slash(path.join(publicBase, relativePath.replace(publicDirRE, '')))
+        url: slash(path.join(publicBase, relativePath.replace(publicDirRE, ''))),
       }
     }
   }
@@ -69,7 +64,7 @@ export const resolveAsset = async (
     resolved = {
       content,
       fileName: resolvedFileName,
-      url
+      url,
     }
   }
 
@@ -77,26 +72,18 @@ export const resolveAsset = async (
   return resolved
 }
 
-export const registerAssets = (
-  assets: Map<string, Buffer>,
-  bundle: OutputBundle
-) => {
+export function registerAssets(assets: Map<string, Buffer>, bundle: OutputBundle) {
   for (const [fileName, source] of assets) {
     bundle[fileName] = {
       isAsset: true,
       type: 'asset',
       fileName,
-      source
+      source,
     }
   }
 }
 
-export const createBuildAssetPlugin = (
-  root: string,
-  publicBase: string,
-  assetsDir: string,
-  inlineLimit: number
-): Plugin => {
+export function createBuildAssetPlugin(root: string, publicBase: string, assetsDir: string, inlineLimit: number): Plugin {
   const assets = new Map<string, Buffer>()
 
   return {
@@ -108,7 +95,7 @@ export const createBuildAssetPlugin = (
           root,
           publicBase,
           assetsDir,
-          inlineLimit
+          inlineLimit,
         )
         if (fileName && content) {
           assets.set(fileName, content)
@@ -120,6 +107,6 @@ export const createBuildAssetPlugin = (
 
     generateBundle(_options, bundle) {
       registerAssets(assets, bundle)
-    }
+    },
   }
 }

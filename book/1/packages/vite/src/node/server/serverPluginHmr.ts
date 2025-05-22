@@ -68,7 +68,7 @@ export const hmrDirtyFilesMap = new LRUCache<string, Set<string>>({ max: 10 })
 export const latestVersionsMap = new Map<string, string>()
 
 // client and node files are placed flat in the dist folder
-export const hmrClientFilePath = path.resolve(import.meta.dirname, '../client.js')
+export const hmrClientFilePath = path.resolve(import.meta.dirname, '../client.mjs')
 export const hmrClientPublicPath = `/vite/hmr`
 
 interface HMRPayload {

@@ -1,18 +1,26 @@
+import os from 'node:os'
+import path from 'node:path'
+import process from 'node:process'
+import chalk from 'chalk'
+import debug from 'debug'
+import minimist from 'minimist'
+import { build } from './build'
+import { resolveConfig } from './config'
+import { optimizeDeps } from './optimizer'
+import { createServer } from './server'
+import { openBrowser } from './utils/openBrowser'
+
 const start = Date.now()
-const argv = require('minimist')(process.argv.slice(2))
+const argv = minimist(process.argv.slice(2))
 // make sure to set debug flag before requiring anything
 if (argv.debug) {
-  process.env.DEBUG = `vite:` + (argv.debug === true ? '*' : argv.debug)
+  process.env.DEBUG = `vite:${argv.debug === true ? '*' : argv.debug}`
   try {
     // this is only present during local development
-    require('source-map-support').install()
-  } catch (e) {}
+    import('source-map-support').then(sms => sms.install())
+  }
+  catch {} // Ignore errors
 }
-
-import os from 'os'
-import path from 'path'
-import chalk from 'chalk'
-import { UserConfig, resolveConfig } from './config'
 
 const command = argv._[0]
 const defaultMode = command === 'build' ? 'production' : 'development'
@@ -48,14 +56,14 @@ Options:
 `)
 }
 
-console.log(chalk.cyan(`vite v${require('../package.json').version}`))
-;(async () => {
+(async () => {
   const { help, h, mode, m, version, v } = argv
 
   if (help || h) {
     logHelp()
     return
-  } else if (version || v) {
+  }
+  else if (version || v) {
     // noop, already logged
     return
   }
@@ -64,22 +72,25 @@ console.log(chalk.cyan(`vite v${require('../package.json').version}`))
   const options = await resolveOptions(envMode)
   if (!options.command || options.command === 'serve') {
     runServe(options)
-  } else if (options.command === 'build') {
+  }
+  else if (options.command === 'build') {
     runBuild(options)
-  } else if (options.command === 'optimize') {
+  }
+  else if (options.command === 'optimize') {
     runOptimize(options)
-  } else {
+  }
+  else {
     console.error(chalk.red(`unknown command: ${options.command}`))
     process.exit(1)
   }
 })()
 
-async function resolveOptions(mode: string) {
+async function resolveOptions(mode: any) {
   // specify env mode
   argv.mode = mode
   // shorthand for serviceWorker option
-  if (argv['sw']) {
-    argv.serviceWorker = argv['sw']
+  if (argv.sw) {
+    argv.serviceWorker = argv.sw
   }
   // map jsx args
   if (argv['jsx-factory']) {
@@ -115,27 +126,28 @@ async function resolveOptions(mode: string) {
   if (userConfig) {
     return {
       ...userConfig,
-      ...argv // cli options take higher priority
+      ...argv, // cli options take higher priority
     }
   }
   return argv
 }
 
-async function runServe(options: UserConfig) {
-  const server = require('./server').createServer(options)
+async function runServe(options) {
+  const server = createServer(options)
 
-  let port = options.port || 3000
-  let hostname = options.hostname || 'localhost'
+  let port = options.port || 3001
+  const hostname = options.hostname || 'localhost'
   const protocol = options.https ? 'https' : 'http'
 
-  server.on('error', (e: Error & { code?: string }) => {
+  server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') {
       console.log(`Port ${port} is in use, trying another one...`)
       setTimeout(() => {
         server.close()
         server.listen(++port)
       }, 100)
-    } else {
+    }
+    else {
       console.error(chalk.red(`[vite] server error:`))
       console.error(e)
     }
@@ -147,13 +159,13 @@ async function runServe(options: UserConfig) {
     const interfaces = os.networkInterfaces()
     Object.keys(interfaces).forEach((key) => {
       ;(interfaces[key] || [])
-        .filter((details) => details.family === 'IPv4')
+        .filter(details => details.family === 'IPv4')
         .map((detail) => {
           return {
             type: detail.address.includes('127.0.0.1')
               ? 'Local:   '
               : 'Network: ',
-            host: detail.address.replace('127.0.0.1', hostname)
+            host: detail.address.replace('127.0.0.1', hostname),
           }
         })
         .forEach(({ type, host }) => {
@@ -162,35 +174,37 @@ async function runServe(options: UserConfig) {
         })
     })
     console.log()
-    require('debug')('vite:server')(`server ready in ${Date.now() - start}ms.`)
-
+    debug('vite:server')(`server ready in ${Date.now() - start}ms.`)
+    console.log('after debug')
     if (options.open) {
-      require('./utils/openBrowser').openBrowser(
-        `${protocol}://${hostname}:${port}`
+      openBrowser(
+        `${protocol}://${hostname}:${port}`,
       )
     }
   })
 }
 
-async function runBuild(options: UserConfig) {
+async function runBuild(options) {
   try {
-    await require('./build').build(options)
+    await build(options)
     process.exit(0)
-  } catch (err) {
+  }
+  catch (err) {
     console.error(chalk.red(`[vite] Build errored out.`))
     console.error(err)
     process.exit(1)
   }
 }
 
-async function runOptimize(options: UserConfig) {
+async function runOptimize(options) {
   try {
-    await require('./optimizer').optimizeDeps(
+    await optimizeDeps(
       options,
-      true /* as cli command */
+      true, /* as cli command */
     )
     process.exit(0)
-  } catch (err) {
+  }
+  catch (err) {
     console.error(chalk.red(`[vite] Dep optimization errored out.`))
     console.error(err)
     process.exit(1)

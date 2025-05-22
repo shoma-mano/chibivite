@@ -2,7 +2,6 @@ import { Plugin } from 'rollup'
 import fs from 'fs-extra'
 import { resolveVue } from '../utils/resolveVue'
 import { InternalResolver } from '../resolver'
-
 import debu from 'debug'
 const debug = debu('vite:build:resolve')
 

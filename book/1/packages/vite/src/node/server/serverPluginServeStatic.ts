@@ -3,11 +3,15 @@ import path from 'path'
 import { ServerPlugin } from '.'
 import { isStaticAsset } from '../utils'
 import chalk from 'chalk'
+import send from 'koa-send'
+// @ts-ignore
+import debug from 'debug'
+// @ts-ignore
+import koaEtag from 'koa-etag'
+// @ts-ignore
+import koaStatic from 'koa-static'
 
-const send = require('koa-send')
-import debu from 'debug'
-
-const debug = debu('vite:history')
+const debugLog = debug('vite:history')
 
 export const seenUrls = new Set()
 
@@ -61,9 +65,9 @@ export const serveStaticPlugin: ServerPlugin = ({
       seenUrls.add(ctx.url)
     })
   }
-  app.use(require('koa-etag')())
-  app.use(require('koa-static')(root))
-  app.use(require('koa-static')(path.join(root, 'public')))
+  app.use(koaEtag())
+  app.use(koaStatic(root))
+  app.use(koaStatic(path.join(root, 'public')))
 
   // history API fallback
   app.use(async (ctx, next) => {
@@ -72,27 +76,27 @@ export const serveStaticPlugin: ServerPlugin = ({
     }
 
     if (ctx.method !== 'GET') {
-      debug(`not redirecting ${ctx.url} (not GET)`)
+      debugLog(`not redirecting ${ctx.url} (not GET)`)
       return next()
     }
 
     const accept = ctx.headers && ctx.headers.accept
     if (typeof accept !== 'string') {
-      debug(`not redirecting ${ctx.url} (no headers.accept)`)
+      debugLog(`not redirecting ${ctx.url} (no headers.accept)`)
       return next()
     }
 
     if (accept.includes('application/json')) {
-      debug(`not redirecting ${ctx.url} (json)`)
+      debugLog(`not redirecting ${ctx.url} (json)`)
       return next()
     }
 
     if (!accept.includes('text/html')) {
-      debug(`not redirecting ${ctx.url} (not accepting html)`)
+      debugLog(`not redirecting ${ctx.url} (not accepting html)`)
       return next()
     }
 
-    debug(`redirecting ${ctx.url} to /index.html`)
+    debugLog(`redirecting ${ctx.url} to /index.html`)
     try {
       await send(ctx, `index.html`, { root })
     } catch (e) {

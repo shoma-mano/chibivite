@@ -1,10 +1,10 @@
-import { Plugin } from 'rollup'
+import type { Plugin } from 'rollup'
+import type { InternalResolver } from '../resolver'
+import path from 'node:path'
 import { init, parse } from 'es-module-lexer'
-import { isCSSRequest } from '../utils/cssUtils'
 import MagicString from 'magic-string'
 import { isStaticAsset } from '../utils'
-import path from 'path'
-import { InternalResolver } from '../resolver'
+import { isCSSRequest } from '../utils/cssUtils'
 
 const isAsset = (id: string) => isCSSRequest(id) || isStaticAsset(id)
 
@@ -14,13 +14,13 @@ export const depAssetExternalPlugin: Plugin = {
     if (isAsset(id)) {
       return {
         id,
-        external: true
+        external: true,
       }
     }
-  }
+  },
 }
 
-export const createDepAssetPlugin = (resolver: InternalResolver): Plugin => {
+export function createDepAssetPlugin(resolver: InternalResolver): Plugin {
   return {
     name: 'vite:optimize-dep-assets',
     async transform(code, id) {
@@ -38,11 +38,12 @@ export const createDepAssetPlugin = (resolver: InternalResolver): Plugin => {
                 // location
                 s = s || new MagicString(code)
                 const deepPath = resolver.fileToRequest(
-                  path.resolve(path.dirname(id), importee)
+                  path.resolve(path.dirname(id), importee),
                 )
                 s.overwrite(start, end, deepPath)
               }
-            } else {
+            }
+            else {
               // ignore dynamic import
             }
           }
@@ -52,6 +53,6 @@ export const createDepAssetPlugin = (resolver: InternalResolver): Plugin => {
         }
       }
       return null
-    }
+    },
   }
 }

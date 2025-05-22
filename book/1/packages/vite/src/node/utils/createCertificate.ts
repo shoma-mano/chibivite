@@ -1,6 +1,9 @@
 // https://github.com/webpack/webpack-dev-server/blob/master/lib/utils/createCertificate.js
+// @ts-ignore
+import selfsigned from 'selfsigned'
+
 export function createCertificate() {
-  const pems = require('selfsigned').generate(null, {
+  const pems = selfsigned.generate(null, {
     algorithm: 'sha256',
     days: 30,
     keySize: 2048,

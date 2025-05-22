@@ -2,12 +2,12 @@ import { Plugin } from 'rollup'
 import { lookupFile } from '../utils'
 import { DepOptimizationOptions } from '.'
 import chalk from 'chalk'
+// @ts-ignore
+import isbuiltin from 'isbuiltin'
 
 export const createBuiltInBailPlugin = (
   allowList: DepOptimizationOptions['allowNodeBuiltins']
 ): Plugin => {
-  const isbuiltin = require('isbuiltin')
-
   return {
     name: 'vite:node-built-in-bail',
     resolveId(id, importer) {

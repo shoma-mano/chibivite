@@ -1,6 +1,6 @@
-import fs from 'fs'
-import path from 'path'
-import { ServerPlugin } from '.'
+import type { ServerPlugin } from '.'
+import fs from 'node:fs'
+import path from 'node:path'
 import { getDepHash } from '../optimizer'
 
 export const serviceWorkerPlugin: ServerPlugin = ({
@@ -8,7 +8,7 @@ export const serviceWorkerPlugin: ServerPlugin = ({
   app,
   watcher,
   resolver,
-  config
+  config,
 }) => {
   const enabled = (config.serviceWorker = !!config.serviceWorker)
 
@@ -18,13 +18,13 @@ export const serviceWorkerPlugin: ServerPlugin = ({
     // make sure the sw cache is unique per project
     .replace(
       /const __PROJECT_ROOT__ =.*/,
-      `const __PROJECT_ROOT__ = ${JSON.stringify(root)}`
+      `const __PROJECT_ROOT__ = ${JSON.stringify(root)}`,
     )
     .replace(
       /const __LOCKFILE_HASH__ =.*/,
       `const __LOCKFILE_HASH__ = ${JSON.stringify(
-        getDepHash(root, config.__path)
-      )}`
+        getDepHash(root, config.__path),
+      )}`,
     )
     // inject server id so the sw cache is invalidated on restart.
     .replace(
@@ -33,7 +33,7 @@ export const serviceWorkerPlugin: ServerPlugin = ({
         // only inject if caching user files. When caching deps only, only
         // the lockfile change invalidates the cache.
         config.serviceWorker === true ? Date.now() : '0'
-      }`
+      }`,
     )
 
   // enable console logs in debug mode
@@ -45,7 +45,7 @@ export const serviceWorkerPlugin: ServerPlugin = ({
     watcher.send({
       type: 'sw-bust-cache',
       path: resolver.fileToRequest(file),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     })
   })
 

@@ -5,7 +5,6 @@ import { ServerPlugin } from '.'
 import { resolveVue } from '../utils'
 import { URL } from 'url'
 import { resolveOptimizedModule, resolveNodeModuleFile } from '../resolver'
-
 import debu from 'debug'
 
 const debug = debu('vite:resolve')

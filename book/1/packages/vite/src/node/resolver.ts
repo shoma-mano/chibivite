@@ -1,49 +1,50 @@
+import os from 'node:os'
+import path from 'node:path'
+import chalk from 'chalk'
+// @ts-ignore
+import debug from 'debug'
 import fs from 'fs-extra'
-import path from 'path'
 import slash from 'slash'
-import {
-  cleanUrl,
-  resolveFrom,
-  queryRE,
-  lookupFile,
-  parseNodeModuleId
-} from './utils'
-import {
-  moduleRE,
-  moduleIdToFileMap,
-  moduleFileToIdMap
-} from './server/serverPluginModuleResolve'
 import { resolveOptimizedCacheDir } from './optimizer'
 import { hmrClientPublicPath } from './server/serverPluginHmr'
-import chalk from 'chalk'
+import {
+  moduleFileToIdMap,
+  moduleIdToFileMap,
+  moduleRE,
+} from './server/serverPluginModuleResolve'
+import {
+  cleanUrl,
+  lookupFile,
+  parseNodeModuleId,
+  queryRE,
+  resolveFrom,
+} from './utils'
 
-import debu from 'debug'
-
-const debug = debu('vite:resolve')
-const isWin = require('os').platform() === 'win32'
+const debugLog = debug('vite:resolve')
+const isWin = os.platform() === 'win32'
 const pathSeparator = isWin ? '\\' : '/'
 
 export interface Resolver {
-  requestToFile?(publicPath: string, root: string): string | undefined
-  fileToRequest?(filePath: string, root: string): string | undefined
+  requestToFile?: (publicPath: string, root: string) => string | undefined
+  fileToRequest?: (filePath: string, root: string) => string | undefined
   alias?: ((id: string) => string | undefined) | Record<string, string>
 }
 
 export interface InternalResolver {
-  requestToFile(publicPath: string): string
-  fileToRequest(filePath: string): string
-  normalizePublicPath(publicPath: string): string
-  alias(id: string): string | undefined
-  resolveRelativeRequest(
+  requestToFile: (publicPath: string) => string
+  fileToRequest: (filePath: string) => string
+  normalizePublicPath: (publicPath: string) => string
+  alias: (id: string) => string | undefined
+  resolveRelativeRequest: (
     publicPath: string,
     relativePublicPath: string
-  ): { pathname: string; query: string }
+  ) => { pathname: string, query: string }
 }
 
 export const supportedExts = ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
 export const mainFields = ['module', 'jsnext', 'jsnext:main', 'browser', 'main']
 
-const defaultRequestToFile = (publicPath: string, root: string): string => {
+function defaultRequestToFile(publicPath: string, root: string): string {
   if (moduleRE.test(publicPath)) {
     const id = publicPath.replace(moduleRE, '')
     const cachedNodeModule = moduleIdToFileMap.get(id)
@@ -69,7 +70,7 @@ const defaultRequestToFile = (publicPath: string, root: string): string => {
   return path.join(root, publicPath.slice(1))
 }
 
-const defaultFileToRequest = (filePath: string, root: string): string => {
+function defaultFileToRequest(filePath: string, root: string): string {
   const moduleRequest = moduleFileToIdMap.get(filePath)
   if (moduleRequest) {
     return moduleRequest
@@ -77,10 +78,11 @@ const defaultFileToRequest = (filePath: string, root: string): string => {
   return `/${slash(path.relative(root, filePath))}`
 }
 
-const isFile = (file: string): boolean => {
+function isFile(file: string): boolean {
   try {
     return fs.statSync(file).isFile()
-  } catch (e) {
+  }
+  catch (e) {
     return false
   }
 }
@@ -93,7 +95,7 @@ const isFile = (file: string): boolean => {
  * returning undefined indicates the filePath is not fuzzy:
  * it is already an exact file path, or it can't match any file
  */
-const resolveFilePathPostfix = (filePath: string): string | undefined => {
+function resolveFilePathPostfix(filePath: string): string | undefined {
   const cleanPath = cleanUrl(filePath)
   if (!isFile(cleanPath)) {
     let postfix = ''
@@ -102,8 +104,8 @@ const resolveFilePathPostfix = (filePath: string): string | undefined => {
         postfix = ext
         break
       }
-      if (isFile(path.join(cleanPath, '/index' + ext))) {
-        postfix = '/index' + ext
+      if (isFile(path.join(cleanPath, `/index${ext}`))) {
+        postfix = `/index${ext}`
         break
       }
     }
@@ -111,7 +113,7 @@ const resolveFilePathPostfix = (filePath: string): string | undefined => {
     const query = queryMatch ? queryMatch[0] : ''
     const resolved = cleanPath + postfix + query
     if (resolved !== filePath) {
-      debug(`(postfix) ${filePath} -> ${resolved}`)
+      debugLog(`(postfix) ${filePath} -> ${resolved}`)
       return postfix
     }
   }
@@ -122,7 +124,7 @@ const isDir = (p: string) => fs.existsSync(p) && fs.statSync(p).isDirectory()
 export function createResolver(
   root: string,
   resolvers: Resolver[] = [],
-  userAlias: Record<string, string> = {}
+  userAlias: Record<string, string> = {},
 ): InternalResolver {
   resolvers = [...resolvers]
   const literalAlias: Record<string, string> = {}
@@ -137,7 +139,8 @@ export function createResolver(
         const fromRoot = path.join(root, target)
         if (isDir(fromRoot)) {
           target = fromRoot
-        } else if (!isDir(target)) {
+        }
+        else if (!isDir(target)) {
           continue
         }
         resolvers.push({
@@ -150,10 +153,11 @@ export function createResolver(
             if (filePath.startsWith(target + pathSeparator)) {
               return slash(key + path.relative(target, filePath))
             }
-          }
+          },
         })
         literalDirAlias[key] = target
-      } else {
+      }
+      else {
         literalAlias[key] = target
       }
     }
@@ -190,7 +194,8 @@ export function createResolver(
       if (postfix) {
         if (postfix[0] === '/') {
           resolved = path.join(resolved, postfix)
-        } else {
+        }
+        else {
           resolved += postfix
         }
       }
@@ -204,7 +209,8 @@ export function createResolver(
       }
       for (const r of resolvers) {
         const request = r.fileToRequest && r.fileToRequest(filePath, root)
-        if (request) return request
+        if (request)
+          return request
       }
       const res = defaultFileToRequest(filePath, root)
       fileToRequestCache.set(filePath, res)
@@ -229,7 +235,7 @@ export function createResolver(
           resolver.requestToFile(result) !== resolver.requestToFile(publicPath)
         ) {
           throw new Error(
-            `[vite] normalizePublicPath check fail. please report to vite.`
+            `[vite] normalizePublicPath check fail. please report to vite.`,
           )
         }
         return result
@@ -237,7 +243,7 @@ export function createResolver(
 
       if (!moduleRE.test(cleanPublicPath)) {
         return finalize(
-          resolver.fileToRequest(resolver.requestToFile(cleanPublicPath))
+          resolver.fileToRequest(resolver.requestToFile(cleanPublicPath)),
         )
       }
 
@@ -258,7 +264,8 @@ export function createResolver(
       // see the test case: /playground/TestNormalizePublicPath.vue
       const id = publicPath.replace(moduleRE, '')
       const { scope, name, inPkgPath } = parseNodeModuleId(id)
-      if (!inPkgPath) return publicPath
+      if (!inPkgPath)
+        return publicPath
       let filePathPostFix = ''
       let findPkgFrom = filePath
       while (!filePathPostFix.startsWith(inPkgPath)) {
@@ -267,15 +274,15 @@ export function createResolver(
         const pkgPath = lookupFile(findPkgFrom, ['package.json'], true)
         if (!pkgPath) {
           throw new Error(
-            `[vite] can't find package.json for a node_module file: ` +
-              `"${publicPath}". something is wrong.`
+            `[vite] can't find package.json for a node_module file: `
+            + `"${publicPath}". something is wrong.`,
           )
         }
         filePathPostFix = slash(path.relative(path.dirname(pkgPath), filePath))
         findPkgFrom = path.join(path.dirname(pkgPath), '../')
       }
       return finalize(
-        ['/@modules', scope, name, filePathPostFix].filter(Boolean).join('/')
+        ['/@modules', scope, name, filePathPostFix].filter(Boolean).join('/'),
       )
     },
 
@@ -285,8 +292,8 @@ export function createResolver(
         return aliased
       }
       for (const r of resolvers) {
-        aliased =
-          r.alias && typeof r.alias === 'function' ? r.alias(id) : undefined
+        aliased
+          = r.alias && typeof r.alias === 'function' ? r.alias(id) : undefined
         if (aliased) {
           return aliased
         }
@@ -307,7 +314,7 @@ export function createResolver(
               const importerFilePath = resolver.requestToFile(importer)
               const importeeFilePath = path.resolve(
                 path.dirname(importerFilePath),
-                importee
+                importee,
               )
               resolved = resolver.fileToRequest(importeeFilePath)
             }
@@ -318,12 +325,12 @@ export function createResolver(
 
       return {
         pathname:
-          cleanUrl(resolved) +
+          cleanUrl(resolved)
           // path resolve strips ending / which should be preserved
-          (importee.endsWith('/') && !resolved.endsWith('/') ? '/' : ''),
-        query: queryMatch ? queryMatch[0] : ''
+          + (importee.endsWith('/') && !resolved.endsWith('/') ? '/' : ''),
+        query: queryMatch ? queryMatch[0] : '',
       }
-    }
+    },
   }
 
   return resolver
@@ -344,7 +351,7 @@ export function resolveBareModuleRequest(
   root: string,
   id: string,
   importer: string,
-  resolver: InternalResolver
+  resolver: InternalResolver,
 ): string {
   const optimized = resolveOptimizedModule(root, id)
   if (optimized) {
@@ -352,7 +359,7 @@ export function resolveBareModuleRequest(
     // optimized deps may import one another and in the built bundle their
     // relative import paths ends with `.js`. If we don't append `.js` during
     // rewrites, it may result in duplicated copies of the same dep.
-    return path.extname(id) === '.js' ? id : id + '.js'
+    return path.extname(id) === '.js' ? id : `${id}.js`
   }
 
   let isEntry = false
@@ -362,11 +369,12 @@ export function resolveBareModuleRequest(
     if (!pkgInfo.entry) {
       console.error(
         chalk.yellow(
-          `[vite] dependency ${id} does not have default entry defined in ` +
-            `package.json.`
-        )
+          `[vite] dependency ${id} does not have default entry defined in `
+          + `package.json.`,
+        ),
       )
-    } else {
+    }
+    else {
       isEntry = true
       id = pkgInfo.entry
     }
@@ -388,15 +396,15 @@ export function resolveBareModuleRequest(
         // warn against deep imports to optimized dep
         console.error(
           chalk.yellow(
-            `\n[vite] Avoid deep import "${id}" (imported by ${importer})\n` +
-              `because "${depId}" has been pre-optimized by vite into a single file.\n` +
-              `Prefer importing directly from the module entry:\n` +
-              chalk.cyan(`\n  import { ... } from "${depId}" \n\n`) +
-              `If the dependency requires deep import to function properly, \n` +
-              `add the deep path to ${chalk.cyan(
-                `optimizeDeps.include`
-              )} in vite.config.js.\n`
-          )
+            `\n[vite] Avoid deep import "${id}" (imported by ${importer})\n`
+            + `because "${depId}" has been pre-optimized by vite into a single file.\n`
+            + `Prefer importing directly from the module entry:\n${
+              chalk.cyan(`\n  import { ... } from "${depId}" \n\n`)
+            }If the dependency requires deep import to function properly, \n`
+            + `add the deep path to ${chalk.cyan(
+              `optimizeDeps.include`,
+            )} in vite.config.js.\n`,
+          ),
         )
       }
 
@@ -406,7 +414,7 @@ export function resolveBareModuleRequest(
         const deepPath = id.replace(deepImportRE, '')
         const normalizedFilePath = slash(filePath)
         const postfix = normalizedFilePath.slice(
-          normalizedFilePath.lastIndexOf(deepPath) + deepPath.length
+          normalizedFilePath.lastIndexOf(deepPath) + deepPath.length,
         )
         id += postfix
       }
@@ -418,7 +426,8 @@ export function resolveBareModuleRequest(
   if (!jsSrcRE.test(ext)) {
     // append import query for non-js deep imports
     return id + (queryRE.test(id) ? '&import' : '?import')
-  } else {
+  }
+  else {
     return id
   }
 }
@@ -427,7 +436,7 @@ const viteOptimizedMap = new Map()
 
 export function resolveOptimizedModule(
   root: string,
-  id: string
+  id: string,
 ): string | undefined {
   const cacheKey = `${root}#${id}`
   const cached = viteOptimizedMap.get(cacheKey)
@@ -436,8 +445,10 @@ export function resolveOptimizedModule(
   }
 
   const cacheDir = resolveOptimizedCacheDir(root)
-  if (!cacheDir) return
-  if (!path.extname(id)) id += '.js'
+  if (!cacheDir)
+    return
+  if (!path.extname(id))
+    id += '.js'
   const file = path.join(cacheDir, id)
   if (fs.existsSync(file) && fs.statSync(file).isFile()) {
     viteOptimizedMap.set(cacheKey, file)
@@ -456,7 +467,7 @@ const nodeModulesFileMap = new Map()
 export function resolveNodeModule(
   root: string,
   id: string,
-  resolver: InternalResolver
+  resolver: InternalResolver,
 ): NodeModuleInfo | undefined {
   const cacheKey = `${root}#${id}`
   const cached = nodeModulesInfoMap.get(cacheKey)
@@ -467,8 +478,9 @@ export function resolveNodeModule(
   try {
     // see if the id is a valid package name
     pkgPath = resolveFrom(root, `${id}/package.json`)
-  } catch (e) {
-    debug(`failed to resolve package.json for ${id}`)
+  }
+  catch (e) {
+    debugLog(`failed to resolve package.json for ${id}`)
   }
 
   if (pkgPath) {
@@ -476,7 +488,8 @@ export function resolveNodeModule(
     let pkg
     try {
       pkg = fs.readJSONSync(pkgPath)
-    } catch (e) {
+    }
+    catch (e) {
       return
     }
     let entryPoint: string | undefined
@@ -533,7 +546,7 @@ export function resolveNodeModule(
     const result: NodeModuleInfo = {
       entry: entryPoint!,
       entryFilePath,
-      pkg
+      pkg,
     }
     nodeModulesInfoMap.set(cacheKey, result)
     return result
@@ -542,7 +555,7 @@ export function resolveNodeModule(
 
 export function resolveNodeModuleFile(
   root: string,
-  id: string
+  id: string,
 ): string | undefined {
   const cacheKey = `${root}#${id}`
   const cached = nodeModulesFileMap.get(cacheKey)
@@ -553,7 +566,8 @@ export function resolveNodeModuleFile(
     const resolved = resolveFrom(root, id)
     nodeModulesFileMap.set(cacheKey, resolved)
     return resolved
-  } catch (e) {
+  }
+  catch (e) {
     // error will be reported downstream
   }
 }
@@ -567,7 +581,7 @@ const normalize = path.posix.normalize
  */
 function mapWithBrowserField(
   relativePathInPkgDir: string,
-  map: Record<string, string>
+  map: Record<string, string>,
 ) {
   const normalized = normalize(relativePathInPkgDir)
   const foundEntry = Object.entries(map).find(([from]) => {

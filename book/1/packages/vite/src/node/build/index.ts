@@ -2,6 +2,7 @@ import path from 'path'
 import fs from 'fs-extra'
 import chalk from 'chalk'
 import { Ora } from 'ora'
+import ora from 'ora'
 import { resolveFrom } from '../utils'
 import {
   rollup as Rollup,
@@ -10,6 +11,20 @@ import {
   Plugin,
   InputOptions
 } from 'rollup'
+// @ts-ignore
+import { nodeResolve } from '@rollup/plugin-node-resolve'
+// @ts-ignore
+import dynamicImport from 'rollup-plugin-dynamic-import-variables'
+// @ts-ignore
+import rollupPluginVue from 'rollup-plugin-vue'
+// @ts-ignore
+import rollupPluginJson from '@rollup/plugin-json'
+// @ts-ignore
+import rollupPluginCommonjs from '@rollup/plugin-commonjs'
+// @ts-ignore
+import rollupPluginWebWorker from 'rollup-plugin-web-worker-loader'
+// @ts-ignore
+import { terser } from 'rollup-plugin-terser'
 import {
   createResolver,
   supportedExts,
@@ -22,7 +37,7 @@ import { createBuildCssPlugin } from './buildPluginCss'
 import { createBuildAssetPlugin } from './buildPluginAsset'
 import { createEsbuildPlugin } from './buildPluginEsbuild'
 import { createReplacePlugin } from './buildPluginReplace'
-import { stopService } from '../esbuildService'
+// import { stopService } from '../esbuildService'
 import { BuildConfig } from '../config'
 import { createBuildJsTransformPlugin } from '../transform'
 import hash_sum from 'hash-sum'
@@ -95,8 +110,6 @@ export async function createBaseRollupPlugins(
     vueCustomBlockTransforms = {},
     cssPreprocessOptions
   } = options
-  const { nodeResolve } = require('@rollup/plugin-node-resolve')
-  const dynamicImport = require('rollup-plugin-dynamic-import-variables')
   const { options: postcssOptions, plugins: postcssPlugins } =
     await resolvePostcssOptions(root, true)
 
@@ -108,7 +121,7 @@ export async function createBaseRollupPlugins(
     // vite:esbuild
     await createEsbuildPlugin(options.minify === 'esbuild', options.jsx),
     // vue
-    require('rollup-plugin-vue')({
+    rollupPluginVue({
       ...options.rollupPluginVueOptions,
       transformAssetUrls: {
         includeAbsolute: true
@@ -130,7 +143,7 @@ export async function createBaseRollupPlugins(
       },
       customBlocks: Object.keys(vueCustomBlockTransforms)
     }),
-    require('@rollup/plugin-json')({
+    rollupPluginJson({
       preferConst: true,
       indent: '  ',
       compact: false,
@@ -147,7 +160,7 @@ export async function createBaseRollupPlugins(
       dedupe: options.rollupDedupe || [],
       mainFields
     }),
-    require('@rollup/plugin-commonjs')({
+    rollupPluginCommonjs({
       extensions: ['.js', '.cjs']
     }),
     dynamicImport({
@@ -203,7 +216,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
     if (process.env.DEBUG || isTest) {
       console.log(msg)
     } else {
-      spinner = require('ora')(msg + '\n').start()
+      spinner = ora(msg + '\n').start()
     }
   }
 
@@ -236,7 +249,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
 
   // lazy require rollup so that we don't load it when only using the dev server
   // importing it just for the types
-  const rollup = require('rollup').rollup as typeof Rollup
+  const rollup = Rollup
   const bundle = await rollup({
     input: path.resolve(root, 'index.html'),
     preserveEntrySignatures: false,
@@ -284,7 +297,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
       ),
       // https://github.com/darionco/rollup-plugin-web-worker-loader
       // configured to support `import Worker from './my-worker?worker'`
-      require('rollup-plugin-web-worker-loader')({
+      rollupPluginWebWorker({
         targetPlatform: 'browser',
         pattern: /(.+)\?worker/,
         extensions: supportedExts,
@@ -296,7 +309,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
       // the user can opt-in to use esbuild which is much faster but results
       // in ~8-10% larger file size.
       minify && minify !== 'esbuild'
-        ? require('rollup-plugin-terser').terser()
+        ? terser()
         : undefined
     ].filter(Boolean)
   })
@@ -401,7 +414,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
   }
 
   // stop the esbuild service after each build
-  stopService()
+  // stopService()
 
   return {
     assets: output,

@@ -1,11 +1,11 @@
-export * from './server'
 export * from './build'
-export * from './optimizer'
 export * from './config'
+export * from './optimizer'
+export * from './server'
 export {
-  readBody,
   cachedRead,
-  isStaticAsset,
+  injectScriptToHtml,
   isImportRequest,
-  injectScriptToHtml
+  isStaticAsset,
+  readBody,
 } from './utils'

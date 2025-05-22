@@ -30,11 +30,12 @@ import { parse } from '../utils/babelParse'
 import MagicString from 'magic-string'
 import { resolveImport } from './serverPluginModuleRewrite'
 import { SourceMap, mergeSourceMap } from './serverPluginSourceMap'
+// @ts-ignore
 import getEtag from 'etag'
+// @ts-ignore
+import debug from 'debug'
 
-import debu from 'debug'
-
-const debug = debu('vite:sfc')
+const debugLog = debug('vite:sfc')
 
 export const srcImportMap = new Map()
 
@@ -86,7 +87,7 @@ export const vuePlugin: ServerPlugin = ({
     // upstream plugins could've already read the file
     const descriptor = await parseSFC(root, filePath, ctx.body)
     if (!descriptor) {
-      debug(`${ctx.url} - 404`)
+      debugLog(`${ctx.url} - 404`)
       ctx.status = 404
       return
     }
@@ -348,7 +349,7 @@ async function parseSFC(
 ): Promise<SFCDescriptor | undefined> {
   let cached = vueCache.get(filePath)
   if (cached && cached.descriptor) {
-    debug(`${filePath} parse cache hit`)
+    debugLog(`${filePath} parse cache hit`)
     return cached.descriptor
   }
 
@@ -394,7 +395,7 @@ async function parseSFC(
   cached = cached || { styles: [], customs: [] }
   cached.descriptor = descriptor
   vueCache.set(filePath, cached)
-  debug(`${filePath} parsed in ${Date.now() - start}ms.`)
+  debugLog(`${filePath} parsed in ${Date.now() - start}ms.`)
   return descriptor
 }
 
