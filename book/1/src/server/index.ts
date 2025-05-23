@@ -36,7 +36,7 @@ interface ServerOptions {
 /**
  * Mini Viteサーバーを作成する
  */
-export async function createServer(options: ServerOptions = {}): Server {
+export async function createServer(options: ServerOptions = {}) {
   const {
     port = 3002,
     root = __dirname,
@@ -78,5 +78,11 @@ export async function createServer(options: ServerOptions = {}): Server {
   // 最後に404ハンドラーを追加
   app.use(notFoundHandler)
 
-  return startServer() as unknown as Server
+  return {
+    listen: () => app.listen(port, () => {
+      console.log(`Server is running at http://localhost:${port}`)
+      console.log(`Root directory: ${root}`)
+      console.log(`Process ID: ${process.pid}`)
+    }),
+  }
 }
