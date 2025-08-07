@@ -388,6 +388,9 @@ importers:
       '@types/jest':
         specifier: ^25.2.1
         version: 25.2.3
+      '@types/minimist':
+        specifier: ^1.2.5
+        version: 1.2.5
       '@types/node':
         specifier: ^22.15.18
         version: 22.15.18
@@ -400,6 +403,9 @@ importers:
       '@types/serve-handler':
         specifier: ^6.1.0
         version: 6.1.4
+      '@types/source-map-support':
+        specifier: ^0.5.10
+        version: 0.5.10
       '@types/ws':
         specifier: ^7.2.4
         version: 7.4.7
@@ -1296,6 +1302,9 @@ packages:
 
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
+
+  '@types/source-map-support@0.5.10':
+    resolution: {integrity: sha512-tgVP2H469x9zq34Z0m/fgPewGhg/MLClalNOiPIzQlXrSS2YrKu/xCdSCKnEDwkFha51VKEKB6A9wW26/ZNwzA==}
 
   '@types/stack-utils@1.0.1':
     resolution: {integrity: sha512-l42BggppR6zLmpfU6fq9HEa2oGPEI8yrSPL3GITjfRInppYFahObbIQOQK3UGxEnyQpltZLaPe75046NOZQikw==}
@@ -6082,6 +6091,10 @@ snapshots:
       '@types/http-errors': 2.0.4
       '@types/node': 22.15.18
       '@types/send': 0.17.4
+
+  '@types/source-map-support@0.5.10':
+    dependencies:
+      source-map: 0.6.1
 
   '@types/stack-utils@1.0.1': {}
 
