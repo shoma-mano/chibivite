@@ -13,7 +13,7 @@ const USER_CACHE_NAME = `vite-cache-${__PROJECT_ROOT__}-${__SERVER_ID__}`
 //    to change, so they are only invalidated when the lockfile has changed.
 const DEPS_CACHE_NAME = `vite-cache-${__PROJECT_ROOT__}-${__LOCKFILE_HASH__}`
 
-const sw = self as any as ServiceWorkerGlobalScope
+const sw = globalThis as any as ServiceWorkerGlobalScope
 
 sw.addEventListener('install', () => {
   // console.log('[vite:sw] install')
@@ -32,7 +32,7 @@ sw.addEventListener('activate', (e) => {
           await caches.delete(key)
         }
       }
-    })()
+    })(),
   )
 })
 
@@ -57,7 +57,7 @@ sw.addEventListener('message', async (e) => {
 
     // notify the client that cache has been busted
     e.ports[0].postMessage({
-      busted: true
+      busted: true,
     })
   }
 })
@@ -87,7 +87,8 @@ async function tryCache(req: Request, cacheName: string) {
   if (cached) {
     // console.log(`[vite:sw] serving ${req.url} from cache`)
     return cached
-  } else {
+  }
+  else {
     // console.log(`[vite:sw] fetching`, req)
     const res = await fetch(req)
     // console.log(`[vite:sw] got res:`, res)
