@@ -87,15 +87,13 @@ export const htmlRewritePlugin: ServerPlugin = ({
               debug(`${importer}: serving from cache`)
               const rewritten = rewriteHtmlPluginCache.get(html)
               res.setHeader('Content-Type', 'text/html')
-              res.end(rewritten)
-              return
+              return res.end(rewritten)
             }
             else {
               const rewritten = await rewriteHtml(importer, html)
               rewriteHtmlPluginCache.set(html, rewritten)
               res.setHeader('Content-Type', 'text/html')
-              res.end(rewritten)
-              return
+              return res.end(rewritten)
             }
           }
           catch (error) {
@@ -103,37 +101,6 @@ export const htmlRewritePlugin: ServerPlugin = ({
             return next()
           }
         }
-      }
-
-      // Response interception for HTML content from other middlewares
-      const originalEnd = res.end
-      res.end = async function (chunk: any, encoding?: any, callback?: any) {
-        if (res.statusCode === 304) {
-          return originalEnd.call(res, chunk, encoding, callback)
-        }
-
-        const contentType = res.getHeader('content-type')
-        const isHtml = contentType && contentType.toString().includes('html')
-
-        if (isHtml && req.body) {
-          const importer = req.url?.split('?')[0] || ''
-          const html = await readBody(req.body)
-          if (rewriteHtmlPluginCache.has(html)) {
-            debug(`${importer}: serving from cache`)
-            const rewritten = rewriteHtmlPluginCache.get(html)
-            return originalEnd.call(res, rewritten, encoding, callback)
-          }
-          else {
-            if (!html) {
-              return originalEnd.call(res, chunk, encoding, callback)
-            }
-            const rewritten = await rewriteHtml(importer, html)
-            rewriteHtmlPluginCache.set(html, rewritten)
-            return originalEnd.call(res, rewritten, encoding, callback)
-          }
-        }
-
-        return originalEnd.call(res, chunk, encoding, callback)
       }
 
       next()

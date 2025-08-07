@@ -34,6 +34,7 @@ function genSourceMapString(map: SourceMap | string | undefined) {
 
 export const sourceMapPlugin: ServerPlugin = ({ app }) => {
   app.use((req: any, res: any, next: any) => {
+    console.log(`Handling request for ${req.url}`)
     const originalEnd = res.end
     res.end = function (chunk: any, encoding?: any, callback?: any) {
       if (typeof chunk === 'string' && req.map) {

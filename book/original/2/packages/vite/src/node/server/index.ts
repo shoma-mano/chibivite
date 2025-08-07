@@ -95,11 +95,12 @@ export function createServer(config: ServerConfig): Server {
   }
 
   // attach server context to request
-  app.use((req: any, _res: any, next: any) => {
+  app.use((req: any, res: any, next: any) => {
+    console.log(`Request URL: ${req.url}`)
     Object.assign(req, context)
-    req.read = cachedRead.bind(null, req)
     req.path = req.url?.split('?')[0]
     req.query = new URLSearchParams(req.url?.split('?')[1] || '')
+    res.statusCode = 200
     next()
   })
 
