@@ -1,4 +1,4 @@
-import { ServerPlugin } from '.'
+import type { ServerPlugin } from '.'
 import merge from 'merge-source-map'
 
 export interface SourceMap {
@@ -12,7 +12,7 @@ export interface SourceMap {
 
 export function mergeSourceMap(
   oldMap: SourceMap | null | undefined,
-  newMap: SourceMap
+  newMap: SourceMap,
 ): SourceMap {
   if (!oldMap) {
     return newMap
@@ -28,7 +28,7 @@ function genSourceMapString(map: SourceMap | string | undefined) {
     map = JSON.stringify(map)
   }
   return `\n//# sourceMappingURL=data:application/json;base64,${Buffer.from(
-    map
+    map,
   ).toString('base64')}`
 }
 

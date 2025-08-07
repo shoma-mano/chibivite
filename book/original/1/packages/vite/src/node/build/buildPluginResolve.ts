@@ -1,14 +1,12 @@
-import { Plugin } from 'rollup'
+import type { Plugin } from 'rollup'
+import type { InternalResolver } from '../resolver'
+import debu from 'debug'
 import fs from 'fs-extra'
 import { resolveVue } from '../utils/resolveVue'
-import { InternalResolver } from '../resolver'
-import debu from 'debug'
+
 const debug = debu('vite:build:resolve')
 
-export const createBuildResolvePlugin = (
-  root: string,
-  resolver: InternalResolver
-): Plugin => {
+export function createBuildResolvePlugin(root: string, resolver: InternalResolver): Plugin {
   return {
     name: 'vite:resolve',
     async resolveId(id, importer) {
@@ -32,6 +30,6 @@ export const createBuildResolvePlugin = (
         const resolved = await this.resolve(id, importer, { skipSelf: true })
         return resolved || { id }
       }
-    }
+    },
   }
 }

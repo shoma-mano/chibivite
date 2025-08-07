@@ -1,4 +1,4 @@
-import { ServerPlugin } from '.'
+import type { ServerPlugin } from '.'
 
 export const webWorkerPlugin: ServerPlugin = ({ app }) => {
   app.use((ctx, next) => {

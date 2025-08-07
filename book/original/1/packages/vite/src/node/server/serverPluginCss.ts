@@ -86,7 +86,7 @@ export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
 
       const boundaries = getCssImportBoundaries(filePath)
       if (boundaries.size) {
-        for (let boundary of boundaries) {
+        for (const boundary of boundaries) {
           if (boundary.includes('.module')) {
             moduleCssUpdate(boundary, resolver)
           }

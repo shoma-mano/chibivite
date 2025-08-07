@@ -99,7 +99,7 @@ function startBrowserProcess(browser: string | undefined, url: string) {
   // Fallback to open
   // (It will always open new tab)
   try {
-    let options = { app: browser, url: true }
+    const options = { app: browser, url: true }
     open(url, options).catch(() => {}) // Prevent `unhandledRejection` error.
     return true
   }

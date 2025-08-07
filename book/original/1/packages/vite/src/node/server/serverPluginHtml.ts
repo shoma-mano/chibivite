@@ -1,18 +1,19 @@
-import { rewriteImports, ServerPlugin } from './index'
+import type { ServerPlugin } from './index'
+import path from 'node:path'
+import chalk from 'chalk'
+import debu from 'debug'
+import { init as initLexer } from 'es-module-lexer'
+import LRUCache from 'lru-cache'
+import slash from 'slash'
+import { cleanUrl, injectScriptToHtml, readBody } from '../utils'
+import { rewriteImports } from './index'
+
 import {
   debugHmr,
   ensureMapEntry,
   hmrClientPublicPath,
-  importerMap
+  importerMap,
 } from './serverPluginHmr'
-import { init as initLexer } from 'es-module-lexer'
-import { cleanUrl, readBody, injectScriptToHtml } from '../utils'
-import LRUCache from 'lru-cache'
-import path from 'path'
-import slash from 'slash'
-import chalk from 'chalk'
-
-import debu from 'debug'
 
 const debug = debu('vite:rewrite')
 
@@ -23,20 +24,20 @@ export const htmlRewritePlugin: ServerPlugin = ({
   app,
   watcher,
   resolver,
-  config
+  config,
 }) => {
-  const devInjectionCode =
-    `\n<script type="module">\n` +
+  const devInjectionCode
+    = `\n<script type="module">\n`
     // import hmr client first to establish connection
-    `import "${hmrClientPublicPath}"\n` +
+      + `import "${hmrClientPublicPath}"\n`
     // inject process.env.NODE_ENV
     // since some ESM builds expect these to be replaced by the bundler
-    `window.process = { env: { NODE_ENV: ${JSON.stringify(
-      config.mode || 'development'
-    )} }}\n` +
-    `</script>\n`
+      + `window.process = { env: { NODE_ENV: ${JSON.stringify(
+        config.mode || 'development',
+      )} }}\n`
+      + `</script>\n`
 
-  const scriptRE = /(<script\b[^>]*>)([\s\S]*?)<\/script>/gm
+  const scriptRE = /(<script\b[^>]*>)([\s\S]*?)<\/script>/g
   const srcRE = /\bsrc=(?:"([^"]+)"|'([^']+)'|([^'"\s]+)\b)/
 
   async function rewriteHtml(importer: string, html: string) {
@@ -47,14 +48,15 @@ export const htmlRewritePlugin: ServerPlugin = ({
           root,
           script,
           importer,
-          resolver
+          resolver,
         )}</script>`
-      } else {
+      }
+      else {
         const srcAttr = openTag.match(srcRE)
         if (srcAttr) {
           // register script as a import dep for hmr
           const importee = resolver.normalizePublicPath(
-            cleanUrl(slash(path.resolve('/', srcAttr[1] || srcAttr[2])))
+            cleanUrl(slash(path.resolve('/', srcAttr[1] || srcAttr[2]))),
           )
           debugHmr(`        ${importer} imports ${importee}`)
           ensureMapEntry(importerMap, importee).add(importer)
@@ -78,12 +80,13 @@ export const htmlRewritePlugin: ServerPlugin = ({
       if (rewriteHtmlPluginCache.has(html)) {
         debug(`${ctx.path}: serving from cache`)
         ctx.body = rewriteHtmlPluginCache.get(html)
-      } else {
-        if (!html) return
+      }
+      else {
+        if (!html)
+          return
         ctx.body = await rewriteHtml(importer, html)
         rewriteHtmlPluginCache.set(html, ctx.body)
       }
-      return
     }
   })
 
@@ -94,9 +97,9 @@ export const htmlRewritePlugin: ServerPlugin = ({
       watcher.send({
         type: 'full-reload',
         path,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       })
-      console.log(chalk.green(`[vite] `) + ` ${path} page reloaded.`)
+      console.log(`${chalk.green(`[vite] `)} ${path} page reloaded.`)
     }
   })
 }

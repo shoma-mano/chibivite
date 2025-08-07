@@ -1,4 +1,4 @@
-import { ServerPlugin } from '.'
+import type { ServerPlugin } from '.'
 import { isImportRequest } from '../utils'
 
 export const wasmPlugin: ServerPlugin = ({ app }) => {
@@ -7,7 +7,7 @@ export const wasmPlugin: ServerPlugin = ({ app }) => {
       ctx.type = 'js'
       ctx.body = `export default (opts = {}) => {
         return WebAssembly.instantiateStreaming(fetch(${JSON.stringify(
-          ctx.path
+          ctx.path,
         )}), opts)
           .then(obj => obj.instance.exports)
       }`

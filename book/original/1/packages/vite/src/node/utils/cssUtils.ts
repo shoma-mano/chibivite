@@ -112,7 +112,7 @@ export async function compileCss(
   // record css import dependencies
   if (res.rawResult) {
     res.rawResult.messages.forEach((msg) => {
-      let { type, file, parent } = msg
+      const { type, file, parent } = msg
       if (type === 'dependency') {
         if (cssImportMap.has(file)) {
           cssImportMap.get(file)!.add(parent)

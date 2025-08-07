@@ -1,15 +1,15 @@
-import fs from 'fs'
-import path from 'path'
-import { ServerPlugin } from '.'
-import { isStaticAsset } from '../utils'
+import type { ServerPlugin } from '.'
+import fs from 'node:fs'
+import path from 'node:path'
 import chalk from 'chalk'
-import send from 'koa-send'
 // @ts-ignore
 import debug from 'debug'
 // @ts-ignore
 import koaEtag from 'koa-etag'
+import send from 'koa-send'
 // @ts-ignore
 import koaStatic from 'koa-static'
+import { isStaticAsset } from '../utils'
 
 const debugLog = debug('vite:history')
 
@@ -19,7 +19,7 @@ export const serveStaticPlugin: ServerPlugin = ({
   root,
   app,
   resolver,
-  config
+  config,
 }) => {
   app.use(async (ctx, next) => {
     // short circuit requests that have already been explicitly handled
@@ -31,23 +31,23 @@ export const serveStaticPlugin: ServerPlugin = ({
     if (ctx.path.startsWith('/public/') && isStaticAsset(ctx.path)) {
       console.error(
         chalk.yellow(
-          `[vite] files in the public directory are served at the root path.\n` +
-            `  ${chalk.blue(ctx.path)} should be changed to ${chalk.blue(
-              ctx.path.replace(/^\/public\//, '/')
-            )}.`
-        )
+          `[vite] files in the public directory are served at the root path.\n`
+          + `  ${chalk.blue(ctx.path)} should be changed to ${chalk.blue(
+            ctx.path.replace(/^\/public\//, '/'),
+          )}.`,
+        ),
       )
     }
 
     // handle possible user request -> file aliases
-    const expectsHtml =
-      ctx.headers.accept && ctx.headers.accept.includes('text/html')
+    const expectsHtml
+      = ctx.headers.accept && ctx.headers.accept.includes('text/html')
     if (!expectsHtml) {
       const filePath = resolver.requestToFile(ctx.path)
       if (
-        filePath !== ctx.path &&
-        fs.existsSync(filePath) &&
-        fs.statSync(filePath).isFile()
+        filePath !== ctx.path
+        && fs.existsSync(filePath)
+        && fs.statSync(filePath).isFile()
       ) {
         await ctx.read(filePath)
       }
@@ -99,7 +99,8 @@ export const serveStaticPlugin: ServerPlugin = ({
     debugLog(`redirecting ${ctx.url} to /index.html`)
     try {
       await send(ctx, `index.html`, { root })
-    } catch (e) {
+    }
+    catch (e) {
       ctx.url = '/index.html'
       ctx.status = 404
       return next()

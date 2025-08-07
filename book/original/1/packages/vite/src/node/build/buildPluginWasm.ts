@@ -1,9 +1,9 @@
-import { Plugin } from 'rollup'
-import { resolveAsset, registerAssets } from './buildPluginAsset'
+import type { Plugin } from 'rollup'
+import { registerAssets, resolveAsset } from './buildPluginAsset'
 
 const wasmHelperId = 'vite/wasm-helper'
 
-const wasmHelper = (opts = {}, url: string) => {
+function wasmHelper(opts = {}, url: string) {
   let instance
   if (url.startsWith('data:')) {
     // @ts-ignore
@@ -14,7 +14,8 @@ const wasmHelper = (opts = {}, url: string) => {
     }
     // @ts-ignore
     instance = WebAssembly.instantiate(bytes.buffer, opts)
-  } else {
+  }
+  else {
     // https://github.com/mdn/webassembly-examples/issues/5
     // WebAssembly.instantiateStreaming requires the server to provide the
     // correct MIME type for .wasm files, which unfortunately doesn't work for
@@ -23,21 +24,16 @@ const wasmHelper = (opts = {}, url: string) => {
     // @ts-ignore
     instance = fetch(url)
       // @ts-ignore
-      .then((r) => r.arrayBuffer())
+      .then(r => r.arrayBuffer())
       // @ts-ignore
-      .then((bytes) => WebAssembly.instantiate(bytes, opts))
+      .then(bytes => WebAssembly.instantiate(bytes, opts))
   }
   return instance.then((i: any) => i.instance.exports)
 }
 
 const wasmHelperCode = wasmHelper.toString()
 
-export const createBuildWasmPlugin = (
-  root: string,
-  publicBase: string,
-  assetsDir: string,
-  inlineLimit: number
-): Plugin => {
+export function createBuildWasmPlugin(root: string, publicBase: string, assetsDir: string, inlineLimit: number): Plugin {
   const assets = new Map<string, Buffer>()
 
   return {
@@ -60,7 +56,7 @@ export const createBuildWasmPlugin = (
           root,
           publicBase,
           assetsDir,
-          inlineLimit
+          inlineLimit,
         )
         if (fileName && content) {
           assets.set(fileName, content)
@@ -75,6 +71,6 @@ export default opts => initWasm(opts, ${JSON.stringify(url)})
 
     generateBundle(_options, bundle) {
       registerAssets(assets, bundle)
-    }
+    },
   }
 }

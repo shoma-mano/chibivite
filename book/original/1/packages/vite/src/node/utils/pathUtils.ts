@@ -1,8 +1,6 @@
 // resolve-from.ts (ESM形式、type: "module" or .mjs)
 import type { ParsedUrlQuery } from 'node:querystring'
 import type { Context } from '../server'
-import { createRequire } from 'node:module'
-import path from 'node:path'
 import qs from 'node:querystring'
 import resolve from 'resolve'
 import slash from 'slash'

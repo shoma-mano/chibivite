@@ -1,5 +1,5 @@
-import { ServerPlugin } from '.'
-import { URL } from 'url'
+import type { ServerPlugin } from '.'
+import { URL } from 'node:url'
 // @ts-ignore
 import debug from 'debug'
 // @ts-ignore
@@ -10,8 +10,7 @@ export const proxyPlugin: ServerPlugin = ({ app, config }) => {
     return
   }
 
-
-const debugLog = debug('vite:proxy')
+  const debugLog = debug('vite:proxy')
   const options = config.proxy
   Object.keys(options).forEach((path) => {
     let opts = options[path]
@@ -22,8 +21,8 @@ const debugLog = debug('vite:proxy')
       debugLog(
         `${ctx.req.method} ${(ctx.req as any).oldPath} proxy to -> ${new URL(
           ctx.req.url!,
-          target
-        )}`
+          target,
+        )}`,
       )
     }
     app.use(proxy(path, opts))

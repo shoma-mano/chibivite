@@ -1,5 +1,5 @@
 import type sfcCompiler from '@vue/compiler-sfc'
-import { readFile, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import path, { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import compiler from '@vue/compiler-sfc'

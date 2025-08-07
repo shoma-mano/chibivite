@@ -1,47 +1,51 @@
-import path from 'path'
-import fs from 'fs-extra'
-import chalk from 'chalk'
-import { Ora } from 'ora'
-import ora from 'ora'
-import { resolveFrom } from '../utils'
-import {
-  rollup as Rollup,
-  RollupOutput,
+import type { Ora } from 'ora'
+import type {
   ExternalOption,
+  InputOptions,
   Plugin,
-  InputOptions
+  RollupOutput,
 } from 'rollup'
-// @ts-ignore
-import { nodeResolve } from '@rollup/plugin-node-resolve'
-// @ts-ignore
-import dynamicImport from 'rollup-plugin-dynamic-import-variables'
-// @ts-ignore
-import rollupPluginVue from 'rollup-plugin-vue'
-// @ts-ignore
-import rollupPluginJson from '@rollup/plugin-json'
+// import { stopService } from '../esbuildService'
+import type { BuildConfig } from '../config'
+import type {
+  InternalResolver,
+} from '../resolver'
+import path from 'node:path'
 // @ts-ignore
 import rollupPluginCommonjs from '@rollup/plugin-commonjs'
 // @ts-ignore
-import rollupPluginWebWorker from 'rollup-plugin-web-worker-loader'
+import rollupPluginJson from '@rollup/plugin-json'
+// @ts-ignore
+import { nodeResolve } from '@rollup/plugin-node-resolve'
+import chalk from 'chalk'
+import fs from 'fs-extra'
+import hash_sum from 'hash-sum'
+import ora from 'ora'
+import {
+  rollup as Rollup,
+} from 'rollup'
+// @ts-ignore
+import dynamicImport from 'rollup-plugin-dynamic-import-variables'
 // @ts-ignore
 import { terser } from 'rollup-plugin-terser'
+// @ts-ignore
+import rollupPluginVue from 'rollup-plugin-vue'
+// @ts-ignore
+import rollupPluginWebWorker from 'rollup-plugin-web-worker-loader'
 import {
   createResolver,
-  supportedExts,
   mainFields,
-  InternalResolver
+  supportedExts,
 } from '../resolver'
-import { createBuildResolvePlugin } from './buildPluginResolve'
-import { createBuildHtmlPlugin } from './buildPluginHtml'
-import { createBuildCssPlugin } from './buildPluginCss'
-import { createBuildAssetPlugin } from './buildPluginAsset'
-import { createEsbuildPlugin } from './buildPluginEsbuild'
-import { createReplacePlugin } from './buildPluginReplace'
-// import { stopService } from '../esbuildService'
-import { BuildConfig } from '../config'
 import { createBuildJsTransformPlugin } from '../transform'
-import hash_sum from 'hash-sum'
+import { resolveFrom } from '../utils'
 import { resolvePostcssOptions } from '../utils/cssUtils'
+import { createBuildAssetPlugin } from './buildPluginAsset'
+import { createBuildCssPlugin } from './buildPluginCss'
+import { createEsbuildPlugin } from './buildPluginEsbuild'
+import { createBuildHtmlPlugin } from './buildPluginHtml'
+import { createReplacePlugin } from './buildPluginReplace'
+import { createBuildResolvePlugin } from './buildPluginResolve'
 import { createBuildWasmPlugin } from './buildPluginWasm'
 
 export interface BuildResult {
@@ -54,7 +58,7 @@ const enum WriteType {
   CSS,
   ASSET,
   HTML,
-  SOURCE_MAP
+  SOURCE_MAP,
 }
 
 const writeColors = {
@@ -62,21 +66,21 @@ const writeColors = {
   [WriteType.CSS]: chalk.magenta,
   [WriteType.ASSET]: chalk.green,
   [WriteType.HTML]: chalk.blue,
-  [WriteType.SOURCE_MAP]: chalk.gray
+  [WriteType.SOURCE_MAP]: chalk.gray,
 }
 
 const warningIgnoreList = [`CIRCULAR_DEPENDENCY`, `THIS_IS_UNDEFINED`]
 const dynamicImportWarningIgnoreList = [
   `Unsupported expression`,
-  `statically analyzed`
+  `statically analyzed`,
 ]
 
 export const onRollupWarning: (
   spinner: Ora | undefined
-) => InputOptions['onwarn'] = (spinner) => (warning, warn) => {
+) => InputOptions['onwarn'] = spinner => (warning, warn) => {
   if (
-    warning.plugin === 'rollup-plugin-dynamic-import-variables' &&
-    dynamicImportWarningIgnoreList.some((msg) => warning.message.includes(msg))
+    warning.plugin === 'rollup-plugin-dynamic-import-variables'
+    && dynamicImportWarningIgnoreList.some(msg => warning.message.includes(msg))
   ) {
     return
   }
@@ -102,16 +106,16 @@ export const onRollupWarning: (
 export async function createBaseRollupPlugins(
   root: string,
   resolver: InternalResolver,
-  options: BuildConfig
+  options: BuildConfig,
 ): Promise<Plugin[]> {
   const {
     rollupInputOptions = {},
     transforms = [],
     vueCustomBlockTransforms = {},
-    cssPreprocessOptions
+    cssPreprocessOptions,
   } = options
-  const { options: postcssOptions, plugins: postcssPlugins } =
-    await resolvePostcssOptions(root, true)
+  const { options: postcssOptions, plugins: postcssPlugins }
+    = await resolvePostcssOptions(root, true)
 
   return [
     // user plugins
@@ -124,30 +128,30 @@ export async function createBaseRollupPlugins(
     rollupPluginVue({
       ...options.rollupPluginVueOptions,
       transformAssetUrls: {
-        includeAbsolute: true
+        includeAbsolute: true,
       },
       postcssOptions,
       postcssPlugins,
       preprocessStyles: true,
       preprocessOptions: {
         includePaths: ['node_modules'],
-        ...cssPreprocessOptions
+        ...cssPreprocessOptions,
       },
       preprocessCustomRequire: (id: string) => require(resolveFrom(root, id)),
       compilerOptions: options.vueCompilerOptions,
       cssModulesOptions: {
         generateScopedName: (local: string, filename: string) =>
           `${local}_${hash_sum(filename)}`,
-        ...(options.rollupPluginVueOptions &&
-          options.rollupPluginVueOptions.cssModulesOptions)
+        ...(options.rollupPluginVueOptions
+          && options.rollupPluginVueOptions.cssModulesOptions),
       },
-      customBlocks: Object.keys(vueCustomBlockTransforms)
+      customBlocks: Object.keys(vueCustomBlockTransforms),
     }),
     rollupPluginJson({
       preferConst: true,
       indent: '  ',
       compact: false,
-      namedExports: true
+      namedExports: true,
     }),
     // user transforms
     ...(transforms.length || Object.keys(vueCustomBlockTransforms).length
@@ -158,16 +162,16 @@ export async function createBaseRollupPlugins(
       extensions: supportedExts,
       preferBuiltins: false,
       dedupe: options.rollupDedupe || [],
-      mainFields
+      mainFields,
     }),
     rollupPluginCommonjs({
-      extensions: ['.js', '.cjs']
+      extensions: ['.js', '.cjs'],
     }),
     dynamicImport({
       warnOnError: true,
       include: [/\.js$/],
-      exclude: [/node_modules/]
-    })
+      exclude: [/node_modules/],
+    }),
   ].filter(Boolean)
 }
 
@@ -179,7 +183,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
   if (options.ssr) {
     return ssrBuild({
       ...options,
-      ssr: false // since ssrBuild calls build, this avoids an infinite loop.
+      ssr: false, // since ssrBuild calls build, this avoids an infinite loop.
     })
   }
 
@@ -203,7 +207,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
     shouldPreload = null,
     env = {},
     mode = 'production',
-    cssPreprocessOptions = {}
+    cssPreprocessOptions = {},
   } = options
 
   const isTest = process.env.NODE_ENV === 'test'
@@ -215,8 +219,9 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
   if (!silent) {
     if (process.env.DEBUG || isTest) {
       console.log(msg)
-    } else {
-      spinner = ora(msg + '\n').start()
+    }
+    else {
+      spinner = ora(`${msg}\n`).start()
     }
   }
 
@@ -233,7 +238,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
     assetsDir,
     assetsInlineLimit,
     resolver,
-    shouldPreload
+    shouldPreload,
   )
 
   const basePlugins = await createBaseRollupPlugins(root, resolver, options)
@@ -265,7 +270,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
       // - which makes it impossible to exclude Vue templates from it since
       // Vue templates are compiled into js and included in chunks.
       createReplacePlugin(
-        (id) => /\.(j|t)sx?$/.test(id) || id.startsWith(`/vite/`),
+        id => /\.(j|t)sx?$/.test(id) || id.startsWith(`/vite/`),
         {
           ...userEnvReplacements,
           'import.meta.env.BASE_URL': JSON.stringify(publicBasePath),
@@ -274,9 +279,9 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
           'import.meta.env.PROD': String(mode === 'production'),
           'process.env.NODE_ENV': JSON.stringify(mode),
           'process.env.': `({}).`,
-          'import.meta.hot': `false`
+          'import.meta.hot': `false`,
         },
-        sourcemap
+        sourcemap,
       ),
       // vite:css
       createBuildCssPlugin({
@@ -286,14 +291,14 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
         minify,
         inlineLimit: assetsInlineLimit,
         cssCodeSplit,
-        preprocessOptions: cssPreprocessOptions
+        preprocessOptions: cssPreprocessOptions,
       }),
       // vite:asset
       createBuildAssetPlugin(
         root,
         publicBasePath,
         assetsDir,
-        assetsInlineLimit
+        assetsInlineLimit,
       ),
       // https://github.com/darionco/rollup-plugin-web-worker-loader
       // configured to support `import Worker from './my-worker?worker'`
@@ -301,7 +306,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
         targetPlatform: 'browser',
         pattern: /(.+)\?worker/,
         extensions: supportedExts,
-        preserveSource: true // somehow results in slightly smaller bundle
+        preserveSource: true, // somehow results in slightly smaller bundle
       }),
       createBuildWasmPlugin(root, publicBasePath, assetsDir, assetsInlineLimit),
       // minify with terser
@@ -310,8 +315,8 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
       // in ~8-10% larger file size.
       minify && minify !== 'esbuild'
         ? terser()
-        : undefined
-    ].filter(Boolean)
+        : undefined,
+    ].filter(Boolean),
   })
 
   const { output } = await bundle.generate({
@@ -319,13 +324,13 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
     sourcemap,
     entryFileNames: `[name].[hash].js`,
     chunkFileNames: `[name].[hash].js`,
-    ...rollupOutputOptions
+    ...rollupOutputOptions,
   })
 
   spinner && spinner.stop()
 
   const cssFileName = output.find(
-    (a) => a.type === 'asset' && a.fileName.endsWith('.css')
+    a => a.type === 'asset' && a.fileName.endsWith('.css'),
   )!.fileName
   const indexHtml = emitIndex ? renderIndex(output, cssFileName) : ''
 
@@ -334,24 +339,24 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
     const writeFile = async (
       filepath: string,
       content: string | Uint8Array,
-      type: WriteType
+      type: WriteType,
     ) => {
       await fs.ensureDir(path.dirname(filepath))
       await fs.writeFile(filepath, content)
       if (!silent) {
-        const needCompression =
-          type === WriteType.JS ||
-          type === WriteType.CSS ||
-          type === WriteType.HTML
+        const needCompression
+          = type === WriteType.JS
+            || type === WriteType.CSS
+            || type === WriteType.HTML
         const compressed = needCompression
           ? `, brotli: ${(require('brotli-size').sync(content) / 1024).toFixed(
-              2
-            )}kb`
+            2,
+          )}kb`
           : ``
         console.log(
           `${chalk.gray(`[write]`)} ${writeColors[type](
-            path.relative(cwd, filepath)
-          )} ${(content.length / 1024).toFixed(2)}kb${compressed}`
+            path.relative(cwd, filepath),
+          )} ${(content.length / 1024).toFixed(2)}kb${compressed}`,
         )
       }
     }
@@ -371,18 +376,19 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
         await writeFile(filepath, code, WriteType.JS)
         if (chunk.map) {
           await writeFile(
-            filepath + '.map',
+            `${filepath}.map`,
             chunk.map.toString(),
-            WriteType.SOURCE_MAP
+            WriteType.SOURCE_MAP,
           )
         }
-      } else if (emitAssets) {
+      }
+      else if (emitAssets) {
         // write asset
         const filepath = path.join(resolvedAssetsPath, chunk.fileName)
         await writeFile(
           filepath,
           chunk.source,
-          chunk.fileName.endsWith('.css') ? WriteType.CSS : WriteType.ASSET
+          chunk.fileName.endsWith('.css') ? WriteType.CSS : WriteType.ASSET,
         )
       }
     }
@@ -392,7 +398,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
       await writeFile(
         path.join(outDir, 'index.html'),
         indexHtml,
-        WriteType.HTML
+        WriteType.HTML,
       )
     }
 
@@ -409,7 +415,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
 
   if (!silent) {
     console.log(
-      `Build completed in ${((Date.now() - start) / 1000).toFixed(2)}s.\n`
+      `Build completed in ${((Date.now() - start) / 1000).toFixed(2)}s.\n`,
     )
   }
 
@@ -418,7 +424,7 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
 
   return {
     assets: output,
-    html: indexHtml
+    html: indexHtml,
   }
 }
 
@@ -429,8 +435,8 @@ export async function build(options: BuildConfig): Promise<BuildResult> {
  * - Templates are compiled with SSR specific optimizations.
  */
 export async function ssrBuild(options: BuildConfig): Promise<BuildResult> {
-  const { rollupInputOptions, rollupOutputOptions, rollupPluginVueOptions } =
-    options
+  const { rollupInputOptions, rollupOutputOptions, rollupPluginVueOptions }
+    = options
 
   return build({
     outDir: path.resolve(options.root || process.cwd(), 'dist-ssr'),
@@ -438,29 +444,29 @@ export async function ssrBuild(options: BuildConfig): Promise<BuildResult> {
     ...options,
     rollupPluginVueOptions: {
       ...rollupPluginVueOptions,
-      target: 'node'
+      target: 'node',
     },
     rollupInputOptions: {
       ...rollupInputOptions,
       external: resolveExternal(
-        rollupInputOptions && rollupInputOptions.external
-      )
+        rollupInputOptions && rollupInputOptions.external,
+      ),
     },
     rollupOutputOptions: {
       ...rollupOutputOptions,
       format: 'cjs',
       exports: 'named',
-      entryFileNames: '[name].js'
+      entryFileNames: '[name].js',
     },
     emitIndex: false,
     emitAssets: false,
     cssCodeSplit: false,
-    minify: false
+    minify: false,
   })
 }
 
 function resolveExternal(
-  userExternal: ExternalOption | undefined
+  userExternal: ExternalOption | undefined,
 ): ExternalOption {
   const required = ['vue', /^@vue\//]
   if (!userExternal) {
@@ -468,14 +474,16 @@ function resolveExternal(
   }
   if (Array.isArray(userExternal)) {
     return [...required, ...userExternal]
-  } else if (typeof userExternal === 'function') {
+  }
+  else if (typeof userExternal === 'function') {
     return (src, importer, isResolved) => {
       if (src === 'vue' || /^@vue\//.test(src)) {
         return true
       }
       return userExternal(src, importer, isResolved)
     }
-  } else {
+  }
+  else {
     return [...required, userExternal]
   }
 }

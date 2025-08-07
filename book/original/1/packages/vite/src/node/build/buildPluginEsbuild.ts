@@ -1,18 +1,15 @@
+import type { Plugin } from 'rollup'
+import type { SharedConfig } from '../config'
 import fs from 'fs-extra'
-import { Plugin } from 'rollup'
 import {
+  resolveJsxOptions,
   tjsxRE,
   transform,
-  resolveJsxOptions,
+  vueJsxFilePath,
   vueJsxPublicPath,
-  vueJsxFilePath
 } from '../esbuildService'
-import { SharedConfig } from '../config'
 
-export const createEsbuildPlugin = async (
-  minify: boolean,
-  jsx: SharedConfig['jsx']
-): Promise<Plugin> => {
+export async function createEsbuildPlugin(minify: boolean, jsx: SharedConfig['jsx']): Promise<Plugin> {
   const jsxConfig = resolveJsxOptions(jsx)
 
   return {
@@ -38,9 +35,9 @@ export const createEsbuildPlugin = async (
           id,
           {
             ...jsxConfig,
-            ...(isVueTs ? { loader: 'ts' } : null)
+            ...(isVueTs ? { loader: 'ts' } : null),
           },
-          jsx
+          jsx,
         )
       }
     },
@@ -48,11 +45,12 @@ export const createEsbuildPlugin = async (
     async renderChunk(code, chunk) {
       if (minify) {
         return transform(code, chunk.fileName, {
-          minify: true
+          minify: true,
         })
-      } else {
+      }
+      else {
         return null
       }
-    }
+    },
   }
 }

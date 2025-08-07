@@ -1,7 +1,7 @@
 export async function asyncReplace(
   input: string,
   re: RegExp,
-  replacer: (match: RegExpExecArray) => string | Promise<string>
+  replacer: (match: RegExpExecArray) => string | Promise<string>,
 ) {
   let match: RegExpExecArray | null
   let remaining = input

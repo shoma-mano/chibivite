@@ -1,13 +1,11 @@
-import { Plugin } from 'rollup'
-import { lookupFile } from '../utils'
-import { DepOptimizationOptions } from '.'
+import type { Plugin } from 'rollup'
+import type { DepOptimizationOptions } from '.'
 import chalk from 'chalk'
 // @ts-ignore
 import isbuiltin from 'isbuiltin'
+import { lookupFile } from '../utils'
 
-export const createBuiltInBailPlugin = (
-  allowList: DepOptimizationOptions['allowNodeBuiltins']
-): Plugin => {
+export function createBuiltInBailPlugin(allowList: DepOptimizationOptions['allowNodeBuiltins']): Plugin {
   return {
     name: 'vite:node-built-in-bail',
     resolveId(id, importer) {
@@ -27,13 +25,13 @@ export const createBuiltInBailPlugin = (
           : `A dependency`
         throw new Error(
           `${dep} is attempting to import Node built-in module ${chalk.yellow(
-            id
-          )}.\n` +
-            `This will not work in a browser environment.\n` +
-            `Imported by: ${chalk.gray(importer)}`
+            id,
+          )}.\n`
+          + `This will not work in a browser environment.\n`
+          + `Imported by: ${chalk.gray(importer)}`,
         )
       }
       return null
-    }
+    },
   }
 }

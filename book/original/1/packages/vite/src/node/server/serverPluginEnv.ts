@@ -1,4 +1,4 @@
-import { ServerPlugin } from '.'
+import type { ServerPlugin } from '.'
 
 export const envPublicPath = '/vite/env'
 
@@ -9,7 +9,7 @@ export const envPlugin: ServerPlugin = ({ app, config }) => {
     BASE_URL: '/',
     MODE: mode,
     DEV: mode === 'development',
-    PROD: mode === 'production'
+    PROD: mode === 'production',
   })
 
   app.use((ctx, next) => {

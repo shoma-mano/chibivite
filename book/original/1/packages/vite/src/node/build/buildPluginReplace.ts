@@ -1,20 +1,16 @@
-import { Plugin, TransformResult } from 'rollup'
+import type { Plugin, TransformResult } from 'rollup'
 import MagicString from 'magic-string'
 
-export const createReplacePlugin = (
-  test: (id: string) => boolean,
-  replacements: Record<string, string>,
-  sourcemap: boolean
-): Plugin => {
+export function createReplacePlugin(test: (id: string) => boolean, replacements: Record<string, string>, sourcemap: boolean): Plugin {
   const pattern = new RegExp(
-    '\\b(' +
+    `\\b(${
       Object.keys(replacements)
         .map((str) => {
           return str.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&')
         })
-        .join('|') +
-      ')\\b',
-    'g'
+        .join('|')
+    })\\b`,
+    'g',
   )
 
   return {
@@ -43,6 +39,6 @@ export const createReplacePlugin = (
         }
         return result
       }
-    }
+    },
   }
 }

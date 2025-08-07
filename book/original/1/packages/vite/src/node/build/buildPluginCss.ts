@@ -1,24 +1,24 @@
-import path from 'path'
-import { Plugin } from 'rollup'
-import { resolveAsset, registerAssets } from './buildPluginAsset'
-import { BuildConfig } from '../config'
-import hash_sum from 'hash-sum'
-// @ts-ignore
-import debug from 'debug'
+import type {
+  SFCAsyncStyleCompileOptions,
+  SFCStyleCompileResults,
+} from '@vue/compiler-sfc'
+import type { Plugin } from 'rollup'
+import type { BuildConfig } from '../config'
+import path from 'node:path'
+import chalk from 'chalk'
 // @ts-ignore
 import CleanCSS from 'clean-css'
+// @ts-ignore
+import debug from 'debug'
+import hash_sum from 'hash-sum'
 import {
-  urlRE,
   compileCss,
   cssPreprocessLangRE,
+  isCSSRequest,
   rewriteCssUrls,
-  isCSSRequest
+  urlRE,
 } from '../utils/cssUtils'
-import {
-  SFCStyleCompileResults,
-  SFCAsyncStyleCompileOptions
-} from '@vue/compiler-sfc'
-import chalk from 'chalk'
+import { registerAssets, resolveAsset } from './buildPluginAsset'
 
 const debugLog = debug('vite:build:css')
 
@@ -35,15 +35,15 @@ interface BuildCssOption {
   preprocessOptions?: SFCAsyncStyleCompileOptions['preprocessOptions']
 }
 
-export const createBuildCssPlugin = ({
+export function createBuildCssPlugin({
   root,
   publicBase,
   assetsDir,
   minify = false,
   inlineLimit = 0,
   cssCodeSplit = true,
-  preprocessOptions = {}
-}: BuildCssOption): Plugin => {
+  preprocessOptions = {},
+}: BuildCssOption): Plugin {
   const styles: Map<string, string> = new Map()
   const assets = new Map<string, Buffer>()
 
@@ -57,27 +57,28 @@ export const createBuildCssPlugin = ({
         const result = isVueStyle
           ? css
           : await compileCss(
-              root,
-              id,
-              {
-                id: '',
-                source: css,
-                filename: id,
-                scoped: false,
-                modules: id.endsWith('.module.css'),
-                preprocessLang: id.replace(
-                  cssPreprocessLangRE,
-                  '$2'
-                ) as SFCAsyncStyleCompileOptions['preprocessLang'],
-                preprocessOptions
-              },
-              true
-            )
+            root,
+            id,
+            {
+              id: '',
+              source: css,
+              filename: id,
+              scoped: false,
+              modules: id.endsWith('.module.css'),
+              preprocessLang: id.replace(
+                cssPreprocessLangRE,
+                '$2',
+              ) as SFCAsyncStyleCompileOptions['preprocessLang'],
+              preprocessOptions,
+            },
+            true,
+          )
 
         let modules: SFCStyleCompileResults['modules']
         if (typeof result === 'string') {
           css = result
-        } else {
+        }
+        else {
           if (result.errors.length) {
             console.error(`[vite] error applying css transforms: `)
             result.errors.forEach(console.error)
@@ -99,7 +100,7 @@ export const createBuildCssPlugin = ({
               root,
               publicBase,
               assetsDir,
-              inlineLimit
+              inlineLimit,
             )
             if (fileName && content) {
               assets.set(fileName, content)
@@ -107,7 +108,7 @@ export const createBuildCssPlugin = ({
             debugLog(
               `url(${rawUrl}) -> ${
                 url.startsWith('data:') ? `base64 inlined` : `url(${url})`
-              }`
+              }`,
             )
             return url
           })
@@ -117,14 +118,14 @@ export const createBuildCssPlugin = ({
         return {
           code: modules
             ? `export default ${JSON.stringify(modules)}`
-            : (cssCodeSplit
-                ? // If code-splitting CSS, inject a fake marker to avoid the module
-                  // from being tree-shaken. This preserves the .css file as a
-                  // module in the chunk's metadata so that we can retrieve them in
-                  // renderChunk.
-                  `${cssInjectionMarker}()\n`
-                : ``) + `export default ${JSON.stringify(css)}`,
-          map: null
+            : `${cssCodeSplit
+              ? // If code-splitting CSS, inject a fake marker to avoid the module
+            // from being tree-shaken. This preserves the .css file as a
+            // module in the chunk's metadata so that we can retrieve them in
+            // renderChunk.
+              `${cssInjectionMarker}()\n`
+              : ``}export default ${JSON.stringify(css)}`,
+          map: null,
         }
       }
     },
@@ -150,20 +151,22 @@ export const createBuildCssPlugin = ({
             isFirst = false
             // make sure the code is in one line so that source map is preserved.
             return (
-              `let ${cssInjectionMarker} = document.createElement('style');` +
-              `${cssInjectionMarker}.innerHTML = ${JSON.stringify(chunkCSS)};` +
-              `document.head.appendChild(${cssInjectionMarker});`
+              `let ${cssInjectionMarker} = document.createElement('style');`
+              + `${cssInjectionMarker}.innerHTML = ${JSON.stringify(chunkCSS)};`
+              + `document.head.appendChild(${cssInjectionMarker});`
             )
-          } else {
+          }
+          else {
             return ''
           }
         })
-      } else {
+      }
+      else {
         code = code.replace(cssInjectionRE, '')
       }
       return {
         code,
-        map: null
+        map: null,
       }
     },
 
@@ -184,11 +187,11 @@ export const createBuildCssPlugin = ({
         isAsset: true,
         type: 'asset',
         fileName: cssFileName,
-        source: css
+        source: css,
       }
 
       registerAssets(assets, bundle)
-    }
+    },
   }
 }
 

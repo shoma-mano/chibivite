@@ -1,5 +1,4 @@
 import type { Ora } from 'ora'
-import type Rollup from 'rollup'
 import type { ResolvedConfig } from '../config'
 import type {
   InternalResolver,

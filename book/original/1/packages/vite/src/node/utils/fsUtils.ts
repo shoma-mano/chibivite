@@ -1,13 +1,12 @@
-import path from 'path'
+import type { Context } from '../server'
+import type { HMRWatcher } from '../server/serverPluginHmr'
+import path from 'node:path'
+import { Readable } from 'node:stream'
+import getETag from 'etag'
 import fs from 'fs-extra'
 import LRUCache from 'lru-cache'
-import { Context } from '../server'
-import { Readable } from 'stream'
-import { seenUrls } from '../server/serverPluginServeStatic'
 import mime from 'mime-types'
-import { HMRWatcher } from '../server/serverPluginHmr'
-import getETag from 'etag'
-
+import { seenUrls } from '../server/serverPluginServeStatic'
 
 interface CacheEntry {
   lastModified: number
@@ -16,7 +15,7 @@ interface CacheEntry {
 }
 
 const fsReadCache = new LRUCache<string, CacheEntry>({
-  max: 10000
+  max: 10000,
 })
 
 /**
@@ -27,7 +26,7 @@ const fsReadCache = new LRUCache<string, CacheEntry>({
  */
 export async function cachedRead(
   ctx: Context | null,
-  file: string
+  file: string,
 ): Promise<Buffer> {
   const lastModified = fs.statSync(file).mtimeMs
   const cached = fsReadCache.get(file)
@@ -42,9 +41,9 @@ export async function cachedRead(
       ctx.etag = cached.etag
       ctx.lastModified = new Date(cached.lastModified)
       if (
-        ctx.__serviceWorker !== true &&
-        ctx.get('If-None-Match') === ctx.etag &&
-        seenUrls.has(ctx.url)
+        ctx.__serviceWorker !== true
+        && ctx.get('If-None-Match') === ctx.etag
+        && seenUrls.has(ctx.url)
       ) {
         ctx.status = 304
       }
@@ -59,7 +58,7 @@ export async function cachedRead(
   fsReadCache.set(file, {
     content,
     etag,
-    lastModified
+    lastModified,
   })
   if (ctx) {
     ctx.etag = etag
@@ -79,19 +78,20 @@ export async function cachedRead(
  * Useful in post-processing middlewares.
  */
 export async function readBody(
-  stream: Readable | Buffer | string | null
+  stream: Readable | Buffer | string | null,
 ): Promise<string | null> {
   if (stream instanceof Readable) {
     return new Promise((resolve, reject) => {
       let res = ''
       stream
-        .on('data', (chunk) => (res += chunk))
+        .on('data', chunk => (res += chunk))
         .on('error', reject)
         .on('end', () => {
           resolve(res)
         })
     })
-  } else {
+  }
+  else {
     return !stream || typeof stream === 'string' ? stream : stream.toString()
   }
 }
@@ -99,7 +99,7 @@ export async function readBody(
 export function lookupFile(
   dir: string,
   formats: string[],
-  pathOnly = false
+  pathOnly = false,
 ): string | undefined {
   for (const format of formats) {
     const fullPath = path.join(dir, format)
@@ -120,7 +120,7 @@ export function lookupFile(
 export function watchFileIfOutOfRoot(
   watcher: HMRWatcher,
   root: string,
-  file: string
+  file: string,
 ) {
   if (!file.startsWith(root) && !/node_modules/.test(file)) {
     watcher.add(file)
