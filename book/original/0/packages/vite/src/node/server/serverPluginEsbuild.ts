@@ -1,10 +1,10 @@
-import { ServerPlugin } from '.'
+import type { ServerPlugin } from '.'
 import {
+  resolveJsxOptions,
   tjsxRE,
   transform,
-  resolveJsxOptions,
+  vueJsxFilePath,
   vueJsxPublicPath,
-  vueJsxFilePath
 } from '../esbuildService'
 import { readBody } from '../utils'
 
@@ -26,7 +26,7 @@ export const esbuildPlugin: ServerPlugin = ({ app, config }) => {
         src!,
         ctx.url,
         jsxConfig,
-        config.jsx
+        config.jsx,
       )
       ctx.body = code
       if (map) {
