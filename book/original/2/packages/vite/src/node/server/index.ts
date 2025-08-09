@@ -117,13 +117,13 @@ export function createServer(config: ServerConfig): Server {
     ...(transforms.length || Object.keys(vueCustomBlockTransforms).length
       ? [createServerTransformPlugin(transforms, vueCustomBlockTransforms)]
       : []),
-    vuePlugin,
-    cssPlugin,
-    esbuildPlugin,
-    jsonPlugin,
-    assetPathPlugin,
-    webWorkerPlugin,
-    wasmPlugin,
+    // vuePlugin,
+    // cssPlugin,
+    // esbuildPlugin,
+    // jsonPlugin,
+    // assetPathPlugin,
+    // webWorkerPlugin,
+    // wasmPlugin,
     // static files should come after HTML processing
     serveStaticPlugin,
     htmlRewritePlugin,

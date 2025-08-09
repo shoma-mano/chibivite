@@ -51,6 +51,7 @@ export const moduleRewritePlugin: ServerPlugin = ({
   resolver,
 }) => {
   app.use((req: any, res: any, next: any) => {
+    console.log('moduleRewritePlugin: processing request', req.url)
     const originalEnd = res.end
     res.end = async function (chunk: any, encoding?: any, callback?: any) {
       if (res.statusCode === 304) {
@@ -109,6 +110,7 @@ export const moduleRewritePlugin: ServerPlugin = ({
       }
     }
 
+    console.log(`moduleRewritePlugin: ${req.url} processed`)
     next()
   })
 
