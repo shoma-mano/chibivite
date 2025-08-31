@@ -43,6 +43,7 @@ export const serveStaticPlugin: ServerPlugin = ({
     const expectsHtml
       = ctx.headers.accept && ctx.headers.accept.includes('text/html')
     if (!expectsHtml) {
+      console.log('serveStaticPlugin: not expecting HTML', ctx.path)
       const filePath = resolver.requestToFile(ctx.path)
       if (
         filePath !== ctx.path
@@ -71,6 +72,7 @@ export const serveStaticPlugin: ServerPlugin = ({
 
   // history API fallback
   app.use(async (ctx, next) => {
+    console.log('serveStaticPlugin: processing request', ctx.url)
     if (ctx.status !== 404) {
       return next()
     }
